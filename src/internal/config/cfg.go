@@ -272,7 +272,7 @@ func (me *Hierarchy) validate() (err error) {
 	// name must be set
 	if len(me.Name) == 0 {
 		if len(me.ID) > 0 {
-			err = fmt.Errorf("hierachy with id '%s' has no name", me.ID)
+			err = fmt.Errorf("hierarchy with id '%s' has no name", me.ID)
 			return
 		}
 		err = fmt.Errorf("not all hierarchies have a name")

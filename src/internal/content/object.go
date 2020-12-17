@@ -271,7 +271,7 @@ type album struct {
 }
 
 // albums maps album keys to the corresponding album instance. An album key is
-// the uint64 FNV hash of the string concatenation of album attributs name,
+// the uint64 FNV hash of the string concatenation of album attributes name,
 // year and compilation.
 type albums map[uint64]*album
 
