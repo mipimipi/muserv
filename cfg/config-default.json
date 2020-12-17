@@ -1,0 +1,83 @@
+{
+  "content": {
+    "music_dir": "",
+    "separator": ";",
+    "cache_dir": "/var/cache/muserv",
+    "update_mode": "notify",
+    "update_interval": 300
+  },
+  "upnp": {
+    "interfaces": [],
+    "port": 8008,
+    "server_name": "Music Server",
+    "udn": "",
+    "max_age": 86400,
+    "status_file": "/var/cache/muserv/status.json",
+    "device": {
+      "manufacturer": "The muserv contributors",
+      "manufacturer_url": "https://gitlab.com/mipimipi",
+      "model_desc": "The simply and flexible music server",
+      "model_name": "muserv",
+      "model_url": "https://gitlab.com/mipimipi/muserv",
+      "model_no": "0.1",
+      "serial_no": "",
+      "upc": ""
+    },
+    "hierarchies": [
+      {
+        "id": "latestAlbums",
+        "name": "Latest Albums"
+      },
+      {
+        "id": "latestTracks",
+        "name": "Latest Tracks"
+      },
+      {
+        "id": "folder",
+        "name": "Folder"
+      },
+      {
+        "name": "Genre | Album Artist | Album",
+        "levels": [
+          "genre",
+          "albumartist",
+          "album"
+        ]
+      },
+      {
+        "name": "Genre | Album",
+        "levels": [
+          "genre",
+          "album"
+        ]
+      },
+      {
+        "name": "Genre",
+        "levels": [
+          "genre"
+        ]
+      },
+      {
+        "name": "Album Artist | Album",
+        "levels": [
+          "albumartist",
+          "album"
+        ]
+      },
+      {
+        "name": "Artist",
+        "levels": [
+          "artist"
+        ]
+      },
+      {
+        "name": "Album",
+        "levels": [
+          "album"
+        ]
+      }
+    ]
+  },
+  "log_dir": "/var/log/muserv",
+  "log_level": "fatal"
+}

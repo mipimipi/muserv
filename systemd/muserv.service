@@ -1,0 +1,17 @@
+[Unit]
+Description=muserv: An UPnP compatible music server
+Requires=network.target
+After=network.target
+[Service]
+User=muserv
+Group=muserv
+PermissionsStartOnly=true
+ExecStartPre=mkdir -p /var/cache/muserv
+ExecStartPre=chown muserv:muserv /var/cache/muserv
+ExecStartPre=chmod 777 /var/cache/muserv
+ExecStartPre=mkdir -p /var/log/muserv
+ExecStartPre=chown muserv:muserv /var/log/muserv
+ExecStartPre=chmod 777 /var/log/muserv
+ExecStart=/usr/bin/muserv run
+[Install]
+WantedBy=multi-user.target
