@@ -32,6 +32,8 @@ const (
 const (
 	// CfgDir is the directory where the muserv configuration is stored
 	CfgDir = "/etc/muserv"
+	// IconDir is the directory where the muserv icons are stored
+	IconDir = CfgDir + "/icons"
 	// path of muserv configuration file
 	cfgFilepath = CfgDir + "/config.json"
 )

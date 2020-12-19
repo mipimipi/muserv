@@ -3,7 +3,9 @@ package yuppie
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -55,6 +57,13 @@ func (me *Server) setHTTPHandleFuncs() {
 		},
 	)
 
+	// device icons
+	me.http.Handler.(*http.ServeMux).HandleFunc(deviceIconPath,
+		func(w http.ResponseWriter, r *http.Request) {
+			me.deviceIconHandler(w, r)
+		},
+	)
+
 	// service descriptions
 	me.http.Handler.(*http.ServeMux).HandleFunc(serviceDescPath,
 		func(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +92,7 @@ func (me *Server) setHTTPHandleFuncs() {
 }
 
 // deviceDescHandler handles requests for the device description, i.e. requests
-// for /upnp/devicedesc.xml
+// for /device/devicedesc.xml
 func (me *Server) deviceDescHandler(w http.ResponseWriter, r *http.Request) {
 	log.Trace("description.xml requested")
 
@@ -103,7 +112,7 @@ func (me *Server) deviceDescHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// set header fields
 	setHeader(w, me.ServerString(), len(desc))
-	// as per UPnP Device Architecture 2.0 spec, the content language is must be
+	// as per UPnP Device Architecture 2.0 spec, the content language must be
 	// contained in the response if and only if the request contained the
 	// ACCEPT-LANGUAGE field
 	if r.Header.Get("ACCEPT-LANGUAGE") != "" {
@@ -115,6 +124,24 @@ func (me *Server) deviceDescHandler(w http.ResponseWriter, r *http.Request) {
 		err = errors.Wrap(err, "couldn't send device description response")
 		log.Fatal(err)
 	}
+}
+
+// deviceIconHandler handles requests for device icons, i.e. requests
+// for /device/*
+func (me *Server) deviceIconHandler(w http.ResponseWriter, r *http.Request) {
+	log.Tracef("icon requested: %s", r.URL.String())
+
+	iconPath, err := url.QueryUnescape(r.URL.String())
+	if err != nil {
+		err = errors.Wrapf(err, "cannot unescape URL: %s", r.URL.String())
+		log.Fatal(err)
+		http.Error(w, fmt.Sprintf("server error: cannot unescape URL: %s", r.URL.String()), http.StatusInternalServerError)
+	}
+
+	log.Tracef("icon served from '%s'", filepath.Join(me.cfg.IconRootDir, iconPath[len(deviceIconPath):]))
+
+	// return icon
+	http.ServeFile(w, r, filepath.Join(me.cfg.IconRootDir, iconPath[len(deviceIconPath):]))
 }
 
 // serviceDescHandler handles requests for service descriptions, i.e. requests

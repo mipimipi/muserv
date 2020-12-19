@@ -245,6 +245,7 @@ func createUPnPServer(ctx context.Context) (srv *yuppie.Server, err error) {
 		ProductName:    "muserv",
 		ProductVersion: ctx.Value(config.KeyVersion).(string),
 		StatusFile:     cfg.UPnP.StatusFile,
+		IconRootDir:    config.IconDir,
 	}
 
 	// create root device
@@ -269,6 +270,22 @@ func createUPnPServer(ctx context.Context) (srv *yuppie.Server, err error) {
 			SerialNumber:     cfg.UPnP.Device.SerialNumber,
 			UDN:              "uuid:" + cfg.UPnP.UUID,
 			UPC:              cfg.UPnP.Device.UPC,
+			Icons: []desc.Icon{
+				{
+					Mimetype: "image/png",
+					Width:    300,
+					Height:   300,
+					Depth:    8,
+					URL:      "/icon_dark.png",
+				},
+				{
+					Mimetype: "image/png",
+					Width:    300,
+					Height:   300,
+					Depth:    8,
+					URL:      "/icon_light.png",
+				},
+			},
 			Services: []desc.ServiceReference{
 				{
 					ServiceType: "urn:schemas-upnp-org:service:ContentDirectory:4",

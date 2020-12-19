@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.1.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.1.1) (2020-12-19)
+
+* Added
+
+  Logos and icons
+
+
 ## [v0.1.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.1.0) (2020-12-17)
 
-* Basic functionality to servce music file in different hierarchies
+* Basic functionality to serve music files in different hierarchies

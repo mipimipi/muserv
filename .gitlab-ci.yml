@@ -3,13 +3,10 @@ image: archlinux:latest
 stages: 
     - deploy
 
-deploy_smsync-git:
+deploy:
     stage: deploy
     only:
-        changes:
-            - pkg/AUR/PKGBUILD
-        refs:
-            - master
+        - tags  
 
     before_script:
         # update arch linux and install additional packages  

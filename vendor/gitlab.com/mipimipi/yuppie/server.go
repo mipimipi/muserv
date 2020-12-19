@@ -24,10 +24,11 @@ func init() {
 
 // URL paths
 const (
-	deviceDescPath      = "/devicedesc.xml"     // device description
-	serviceDescPath     = "/services/desc/"     // service descriptions
-	serviceControlPath  = "/services/control/"  // service control
-	serviceEventSubPath = "/services/eventSub/" // event subscriptions
+	deviceDescPath      = "/device/devicedesc.xml" // device description
+	deviceIconPath      = "/device/"               // device icons
+	serviceDescPath     = "/services/desc/"        // service descriptions
+	serviceControlPath  = "/services/control/"     // service control
+	serviceEventSubPath = "/services/eventSub/"    // event subscriptions
 )
 
 // Server represents the UPnP server

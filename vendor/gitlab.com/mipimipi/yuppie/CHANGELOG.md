@@ -1,3 +1,9 @@
+## [v0.3.2](https://gitlab.com/mipimipi/yuppie/-/tags/v0.3.2) (2020-12-18)
+
+### Added
+
+* Device icons can be served
+
 ## [v0.3.1](https://gitlab.com/mipimipi/yuppie/-/tags/v0.3.1) (2020-12-16)
 
 ### Added

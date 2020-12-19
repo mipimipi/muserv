@@ -31,7 +31,7 @@ github.com/spf13/pflag
 ## explicit
 gitlab.com/mipimipi/go-utils
 gitlab.com/mipimipi/go-utils/file
-# gitlab.com/mipimipi/yuppie v0.3.1
+# gitlab.com/mipimipi/yuppie v0.3.2
 ## explicit
 gitlab.com/mipimipi/yuppie
 gitlab.com/mipimipi/yuppie/desc

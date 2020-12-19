@@ -16,6 +16,10 @@ type Config struct {
 	// StatusFile is the path to the JSON file that persists data such as
 	// state variables
 	StatusFile string
+	// IconRootDir is the root directory for device icons. I.e. if the icon url
+	// in the device description is someDir/icon.png, for example, the icon
+	// must be located in IconRootDir/someDir/icon.png
+	IconRootDir string
 }
 
 // defaultCfg is the default configuration which is used if the server is created

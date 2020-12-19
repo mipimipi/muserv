@@ -54,10 +54,9 @@ yuppie implements the [UPnP Device Architecture version 2.0](http://www.upnp.org
 
   yuppie only supports the standard UPnP data types
 
-* Server icons
+* Event subscriptions for specific state variables  
 
-  yuppie does not (yet) support server icons
-
+  yuppie only supports event subscriptions for all evented state variables
 
 # Further Reading
 
