@@ -40,8 +40,10 @@ const (
 
 // audioMimeTypes contains the audio mime types that muserv supports
 var audioMimeTypes = []string{
+	"audio/aac",
 	"audio/flac",
 	"audio/mpeg",
+	"audio/mp4",
 	"audio/ogg",
 	"audio/x-flac",
 }
