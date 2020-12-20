@@ -37,6 +37,14 @@ const (
 	svSystemUpdateID       = "SystemUpdateID"
 )
 
+// virtual command folder
+const contentFolder = "/content/"
+
+// content commands
+const (
+	checkAlbums = "check-albums"
+)
+
 var log *l.Entry = l.WithFields(l.Fields{"srv": "upnp"})
 
 // regular expression to check the right format of cover picture URLs
@@ -414,6 +422,25 @@ func (me *Server) setHTTPHandler() {
 				log.Fatal(err)
 				http.Error(w, fmt.Sprintf("server error: cannot write picture id %d to HTTP response", id), http.StatusInternalServerError)
 				return
+			}
+		},
+	)
+
+	// handler for command requests
+	me.HTTPHandleFunc(contentFolder,
+		func(w http.ResponseWriter, r *http.Request) {
+			path, err := url.QueryUnescape(r.URL.String())
+			if err != nil {
+				err = errors.Wrapf(err, "cannot unescape URL: %s", r.URL.String())
+				log.Fatal(err)
+				http.Error(w, fmt.Sprintf("server error: cannot unescape URL: %s", r.URL.String()), http.StatusInternalServerError)
+			}
+
+			switch path[len(contentFolder):] {
+			case checkAlbums:
+				me.cnt.CheckAlbums(w)
+			default:
+				fmt.Fprint(w, "unknown command")
 			}
 		},
 	)

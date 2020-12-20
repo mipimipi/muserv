@@ -174,6 +174,35 @@ func (me *Content) Browse(id ObjID, mode string, start, wanted uint32) (result s
 	return
 }
 
+// CheckAlbums checks if albums with the same title from the same album artists
+// have the same year and compilation flag assigned. If that's not the case,
+// that's an indicator for an inconsistentcy
+func (me *Content) CheckAlbums(w io.Writer) {
+	albums := make(map[string]struct {
+		year        int
+		compilation bool
+	})
+
+	fmt.Fprint(w, "Potentially inconsistent albums:\n")
+
+	for _, t := range me.tracks {
+		key := fmt.Sprintf("%v|%s", t.tags.albumArtists, t.tags.album)
+		fmt.Fprintf(w, "%s\n", key)
+		album, exists := albums[key]
+		if !exists {
+			albums[key] = struct {
+				year        int
+				compilation bool
+			}{year: t.tags.year, compilation: t.tags.compilation}
+			continue
+		}
+		if album.year != t.tags.year || album.compilation != t.tags.compilation {
+			fmt.Fprintf(w, "Album '%s' from '%v', track '%s'\n", t.tags.album, t.tags.albumArtists, t.name())
+			continue
+		}
+	}
+}
+
 // ContainerUpdateIDs assembles the new value for the state variable
 // ContainerUpdateIDs
 func (me *Content) ContainerUpdateIDs() (updates string) {
