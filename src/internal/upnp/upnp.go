@@ -42,7 +42,10 @@ const contentFolder = "/content/"
 
 // content commands
 const (
-	checkAlbums = "check-albums"
+	albumsWithMultipleCovers = "albums-with-multiple-covers"
+	inconsistentAlbums       = "inconsistent-albums"
+	tracksWithoutAlbum       = "tracks-without-album"
+	tracksWithoutCover       = "tracks-without-cover"
 )
 
 var log *l.Entry = l.WithFields(l.Fields{"srv": "upnp"})
@@ -191,6 +194,7 @@ func (me *Server) InitStateVariables() {
 // ServiceResetProcedure executes the service reset procedure as described in
 // the ContentDirectory service specification
 func (me *Server) ServiceResetProcedure(ctx context.Context) {
+	log.Trace("executing service reset procudure")
 	me.Disconnect(ctx)
 	me.SetServiceResetToken()
 	me.SetContainerUpdateIDs("")
@@ -437,8 +441,14 @@ func (me *Server) setHTTPHandler() {
 			}
 
 			switch path[len(contentFolder):] {
-			case checkAlbums:
-				me.cnt.CheckAlbums(w)
+			case albumsWithMultipleCovers:
+				me.cnt.AlbumsWithMultipleCovers(w)
+			case inconsistentAlbums:
+				me.cnt.InconsistentAlbums(w)
+			case tracksWithoutAlbum:
+				me.cnt.TracksWithoutAlbum(w)
+			case tracksWithoutCover:
+				me.cnt.TracksWithoutCover(w)
 			default:
 				fmt.Fprint(w, "unknown command")
 			}

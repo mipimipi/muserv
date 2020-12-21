@@ -42,8 +42,8 @@ const (
 var audioMimeTypes = []string{
 	"audio/aac",
 	"audio/flac",
-	"audio/mpeg",
 	"audio/mp4",
+	"audio/mpeg",
 	"audio/ogg",
 	"audio/x-flac",
 }
@@ -52,6 +52,12 @@ var audioMimeTypes = []string{
 var imageMimeTypes = []string{
 	"image/jpeg",
 	"image/png",
+}
+
+func init() {
+	// mime type slices must be sorted
+	sort.Strings(audioMimeTypes)
+	sort.Strings(imageMimeTypes)
 }
 
 const (

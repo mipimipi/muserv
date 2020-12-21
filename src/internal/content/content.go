@@ -174,35 +174,6 @@ func (me *Content) Browse(id ObjID, mode string, start, wanted uint32) (result s
 	return
 }
 
-// CheckAlbums checks if albums with the same title from the same album artists
-// have the same year and compilation flag assigned. If that's not the case,
-// that's an indicator for an inconsistentcy
-func (me *Content) CheckAlbums(w io.Writer) {
-	albums := make(map[string]struct {
-		year        int
-		compilation bool
-	})
-
-	fmt.Fprint(w, "Potentially inconsistent albums:\n")
-
-	for _, t := range me.tracks {
-		key := fmt.Sprintf("%v|%s", t.tags.albumArtists, t.tags.album)
-		fmt.Fprintf(w, "%s\n", key)
-		album, exists := albums[key]
-		if !exists {
-			albums[key] = struct {
-				year        int
-				compilation bool
-			}{year: t.tags.year, compilation: t.tags.compilation}
-			continue
-		}
-		if album.year != t.tags.year || album.compilation != t.tags.compilation {
-			fmt.Fprintf(w, "Album '%s' from '%v', track '%s'\n", t.tags.album, t.tags.albumArtists, t.name())
-			continue
-		}
-	}
-}
-
 // ContainerUpdateIDs assembles the new value for the state variable
 // ContainerUpdateIDs
 func (me *Content) ContainerUpdateIDs() (updates string) {
@@ -614,4 +585,86 @@ func (me *Content) traceUpdate(id ObjID) {
 		return
 	}
 	me.updCounts[id]++
+}
+
+// AlbumsWithMultipleCovers determines albums that contain tracks that have not the
+// same cover picture
+func (me *Content) AlbumsWithMultipleCovers(w io.Writer) {
+	fmt.Fprint(w, "Albums with multiple covers:\n")
+	for _, a := range me.albums {
+		var picID nonePicID
+	L:
+		for i := 0; i < a.numChildren(); i++ {
+			t := a.childByIndex(i).(*track)
+			if i == 0 {
+				picID = t.picID
+				continue
+			}
+			if t.picID.valid != picID.valid || t.picID.id != picID.id {
+				fmt.Fprintf(w, "Genre: '%v', albumArtist: '%v', Album: '%s'\n", t.tags.genres, a.artists, a.name())
+				break L
+			}
+		}
+	}
+}
+
+// InconsistentAlbums checks if albums with the same title from the same album
+// artists have the same year and compilation flag assigned. If that's not the
+// case, that's an indicator for an inconsistentcy and the album data is
+// printed to w
+func (me *Content) InconsistentAlbums(w io.Writer) {
+	albums := make(map[string]struct {
+		year        int
+		compilation bool
+	})
+	incons := make(map[string]bool)
+
+	fmt.Fprint(w, "Potentially inconsistent albums:\n")
+
+	for _, t := range me.tracks {
+		key := fmt.Sprintf("%v|%s", t.tags.albumArtists, t.tags.album)
+		album, exists := albums[key]
+		if !exists {
+			albums[key] = struct {
+				year        int
+				compilation bool
+			}{year: t.tags.year, compilation: t.tags.compilation}
+			continue
+		}
+		if album.year != t.tags.year || album.compilation != t.tags.compilation {
+			_, exists := incons[key]
+			if !exists {
+				fmt.Fprintf(w, "Genre: '%v', albumArtist: '%v', Album: '%s',  track: '%s' - differences: ", t.tags.genres, t.tags.albumArtists, t.tags.album, t.name())
+				if album.year != t.tags.year {
+					fmt.Fprint(w, "years ")
+				}
+				if album.compilation != t.tags.compilation {
+					fmt.Fprint(w, "compilation flag ")
+				}
+				fmt.Fprint(w, "\n")
+				incons[key] = true
+			}
+			continue
+		}
+	}
+}
+
+// TracksWithoutAlbum determines tracks that do not have a album tag assigned
+func (me *Content) TracksWithoutAlbum(w io.Writer) {
+	fmt.Fprint(w, "Tracks without album:\n")
+	for _, t := range me.tracks {
+		if len(t.tags.album) == 0 {
+			fmt.Fprintf(w, "Genre: '%v', albumArtists: '%v', album: '%s',  track: '%s'\n", t.tags.genres, t.tags.albumArtists, t.tags.album, t.name())
+		}
+	}
+}
+
+// TracksWithoutCover determines tracks that do not have a cover picture assigned
+func (me *Content) TracksWithoutCover(w io.Writer) {
+	fmt.Fprint(w, "Tracks without cover pictures:\n")
+	for _, t := range me.tracks {
+		if !t.picID.valid {
+			fmt.Fprintf(w, "Genre: '%v', albumArtists: '%v', album: '%s',  track: '%s'\n", t.tags.genres, t.tags.albumArtists, t.tags.album, t.name())
+		}
+	}
 }
