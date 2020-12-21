@@ -7,7 +7,6 @@ import (
 	"mime"
 	"os/user"
 	"path"
-	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,25 +38,19 @@ const (
 )
 
 // audioMimeTypes contains the audio mime types that muserv supports
-var audioMimeTypes = []string{
-	"audio/aac",
-	"audio/flac",
-	"audio/mp4",
-	"audio/mpeg",
-	"audio/ogg",
-	"audio/x-flac",
+var audioMimeTypes = map[string]bool{
+	"audio/aac":    true,
+	"audio/flac":   true,
+	"audio/mp4":    true,
+	"audio/mpeg":   true,
+	"audio/ogg":    true,
+	"audio/x-flac": true,
 }
 
 // imageMimeTypes contains the image mime types that muserv supports
-var imageMimeTypes = []string{
-	"image/jpeg",
-	"image/png",
-}
-
-func init() {
-	// mime type slices must be sorted
-	sort.Strings(audioMimeTypes)
-	sort.Strings(imageMimeTypes)
+var imageMimeTypes = map[string]bool{
+	"image/jpeg": true,
+	"image/png":  true,
 }
 
 const (
@@ -133,22 +126,18 @@ type Hierarchy struct {
 // IsValidAudioFile returns true if file has a mime type that is relevant for muserv as per
 // the configuration, otherwise false is returned
 func IsValidAudioFile(file string) bool {
-	mimeType := mime.TypeByExtension(path.Ext(file))
-	i := sort.SearchStrings(audioMimeTypes, mimeType)
-	if i < len(audioMimeTypes) && audioMimeTypes[i] == mimeType {
-		return true
-	}
-	return false
+	_, exists := audioMimeTypes[mime.TypeByExtension(path.Ext(file))]
+	return exists
 }
 
 // SupportedMimeTypes assembles a string containing the audio and image mime
 // types that muserv supports. The string is used to set the state variable
 // SpurceProtocolInfo of the connection manager service
 func SupportedMimeTypes() (s string) {
-	for _, m := range audioMimeTypes {
+	for m := range audioMimeTypes {
 		s += ",http-get:*:" + m + ":*"
 	}
-	for _, m := range imageMimeTypes {
+	for m := range imageMimeTypes {
 		s += ",http-get:*:" + m + ":*"
 	}
 	// note: the leading comma must be removed
