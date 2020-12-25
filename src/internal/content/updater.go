@@ -130,7 +130,7 @@ func diff(tCnt trackpaths, tDir trackpaths) (tDel, tAdd trackpaths) {
 		}
 		if tCnt[i].path == tDir[j].path {
 			// check is files have changed though the name didn't
-			if tCnt[i].lastChanged() < tDir[j].lastChanged() {
+			if tCnt[i].lastChange() < tDir[j].lastChange() {
 				tDel = append(tDel, tCnt[i])
 				tAdd = append(tAdd, tDir[j])
 			}

@@ -53,27 +53,66 @@ var imageMimeTypes = map[string]bool{
 	"image/png":  true,
 }
 
+// LevelType represents the type of a music hierarchy level
+type LevelType string
+
+// possible types of hierarchy levels
 const (
-	// TagAlbum is the album tag
-	TagAlbum = "album"
-	// TagAlbumArtist is the album artist tag
-	TagAlbumArtist = "albumartist"
-	// TagArtist is the artist tag
-	TagArtist = "artist"
-	// TagGenre is the genre tag
-	TagGenre = "genre"
-	// TagTrack represents the track in the definition of content hierarchies
-	TagTrack = "track"
+	LvlAlbum       LevelType = "album"
+	LvlAlbumArtist LevelType = "albumartist"
+	LvlArtist      LevelType = "artist"
+	LvlGenre       LevelType = "genre"
+	LvlTrack       LevelType = "track"
 )
 
-// allowedHierarchies contains the allowed successors of tag in content
-// hierarchies
-var allowedHierarchies = map[string]([]string){
-	TagGenre:       {TagAlbumArtist, TagArtist, TagAlbum, TagTrack},
-	TagAlbumArtist: {TagAlbum},
-	TagArtist:      {TagTrack},
-	TagAlbum:       {TagTrack},
-	TagTrack:       {},
+// IsValid checks if the level type has a valid value
+func (me LevelType) IsValid() (err error) {
+	if me != LvlAlbum && me != LvlAlbumArtist && me != LvlArtist && me != LvlGenre && me != LvlTrack {
+		err = fmt.Errorf("%s is no valid hierarchy level", me)
+	}
+	return
+}
+
+// allowedHierarchies contains the allowed successors of a level type in
+// content hierarchies
+var allowedHierarchies = map[LevelType]([]LevelType){
+	LvlGenre:       {LvlAlbumArtist, LvlArtist, LvlAlbum, LvlTrack},
+	LvlAlbumArtist: {LvlAlbum},
+	LvlArtist:      {LvlTrack},
+	LvlAlbum:       {LvlTrack},
+	LvlTrack:       {},
+}
+
+// SortOrd represents the sort order (ascending or descending)
+type SortOrd string
+
+// sort orders
+const (
+	OrdAsc  SortOrd = "+" // sort ascending
+	OrdDesc SortOrd = "-" // sort descending
+)
+
+// SortField represents an attribute that is used for sorting objects such as
+// albums or tracks
+type SortField string
+
+// sort field values
+const (
+	SortNone       SortField = ""
+	SortTitle      SortField = "title"
+	SortTrackNo    SortField = "trackNo"
+	SortDiscNo     SortField = "discNo"
+	SortYear       SortField = "year"
+	SortLastChange SortField = "lastChange"
+)
+
+// allowedSortFields contains the allowed sort fields per hierarchy level type.
+// The types that are not listed here correspond single value tags (e.g. genre).
+// Those can only be sorted by that single value and thus do not support other
+// sort fields
+var allowedSortFields = map[LevelType]([]SortField){
+	LvlAlbum: {SortTitle, SortYear, SortLastChange},
+	LvlTrack: {SortTitle, SortYear, SortLastChange, SortTrackNo, SortDiscNo},
 }
 
 // Cfg stores the data from the MuServ configuration file
@@ -91,14 +130,16 @@ type cnt struct {
 	UpdateInterval time.Duration `json:"update_interval"`
 }
 type upnp struct {
-	Interfaces []string    `json:"interfaces"`
-	Port       int         `json:"port"`
-	ServerName string      `json:"server_name"`
-	UUID       string      `json:"udn"`
-	MaxAge     int         `json:"max_age"`
-	StatusFile string      `json:"status_file"`
-	Device     device      `json:"device"`
-	Hiers      []Hierarchy `json:"hierarchies"`
+	Interfaces     []string    `json:"interfaces"`
+	Port           int         `json:"port"`
+	ServerName     string      `json:"server_name"`
+	UUID           string      `json:"udn"`
+	MaxAge         int         `json:"max_age"`
+	StatusFile     string      `json:"status_file"`
+	Device         device      `json:"device"`
+	Hiers          []Hierarchy `json:"hierarchies"`
+	ShowFolders    bool        `json:"show_folders"`
+	FolderHierName string      `json:"folder_hierarchy_name"`
 }
 type device struct {
 	Manufacturer     string `json:"manufacturer"`
@@ -118,9 +159,45 @@ type device struct {
 // of hierarchies they shall appear. Those hierarchies can be removed without
 // problem. For the other hierarchies, Levels must be set.
 type Hierarchy struct {
-	ID     string   `json:"id"`
-	Name   string   `json:"name"`
-	Levels []string `json:"levels"`
+	Name   string  `json:"name"`
+	Levels []level `json:"levels"`
+}
+
+type level struct {
+	Type       LevelType `json:"type"`
+	Sort       []string  `json:"sort"`
+	sortFields []SortField
+	comps      []Comparison
+}
+
+func (me *level) SortFields() []SortField {
+	if len(me.sortFields) == 0 {
+		me.assembleSortAttr()
+	}
+	return me.sortFields
+}
+
+// Comparison represents a "less" function for strings
+type Comparison func(string, string) bool
+
+func (me *level) Comparisons() [](Comparison) {
+	if len(me.comps) == 0 {
+		me.assembleSortAttr()
+	}
+	return me.comps
+}
+
+func (me *level) assembleSortAttr() {
+	for _, s := range me.Sort {
+		ord, sf := splitSort(s)
+		me.sortFields = append(me.sortFields, sf)
+		switch ord {
+		case OrdAsc:
+			me.comps = append(me.comps, func(a, b string) bool { return a < b })
+		case OrdDesc:
+			me.comps = append(me.comps, func(a, b string) bool { return a > b })
+		}
+	}
 }
 
 // IsValidAudioFile returns true if file has a mime type that is relevant for muserv as per
@@ -242,6 +319,33 @@ func Test() (err error) {
 	return
 }
 
+// splitSort splits s into the sort order (which is indicated by the character
+// of the sort field, "+" or "-") and the sort field itself (i.e. the part after
+// the order indicator). If there's no order indicator, "+" is assumed
+func splitSort(s string) (ord SortOrd, sf SortField) {
+	if SortOrd(s[0]) == OrdAsc || SortOrd(s[0]) == OrdDesc {
+		ord = SortOrd(s[0])
+		sf = SortField(s[1:])
+	} else {
+		ord = OrdAsc
+		sf = SortField(s)
+	}
+	return
+}
+
+// validateSort checks if s is a valid sort string (i.e. if it's of the form
+// (+|-)<sort field>)
+func validateSort(s string) (err error) {
+	if len(s) == 0 {
+		return
+	}
+	_, sf := splitSort(s)
+	if sf != SortNone && sf != SortTitle && sf != SortTrackNo && sf != SortDiscNo && sf != SortYear && sf != SortLastChange {
+		err = fmt.Errorf("%s is no valid sort field", s)
+	}
+	return
+}
+
 // validateDir checks if dir exists. name is the name that is used for that
 // directory in the configuration
 func validateDir(dir, name string) (err error) {
@@ -263,25 +367,11 @@ func validateDir(dir, name string) (err error) {
 
 // validate checks if the hierarchy is OK. If it's not, an error is returned
 func (me *Hierarchy) validate() (err error) {
-	// either ID or Levels must be set but not both
-	if len(me.ID) > 0 && len(me.Levels) > 0 {
-		err = fmt.Errorf("hierarchy with id '%s' must not have levels", me.ID)
-		return
-	}
 	// name must be set
 	if len(me.Name) == 0 {
-		if len(me.ID) > 0 {
-			err = fmt.Errorf("hierarchy with id '%s' has no name", me.ID)
-			return
-		}
 		err = fmt.Errorf("not all hierarchies have a name")
 		return
 	}
-
-	if len(me.ID) > 0 {
-		return
-	}
-
 	// levels must be set
 	if len(me.Levels) == 0 {
 		err = fmt.Errorf("hierarchy '%s' does not have levels", me.Name)
@@ -290,16 +380,31 @@ func (me *Hierarchy) validate() (err error) {
 
 	// check levels (here, we know already that there is at least one level)
 	for i, level := range me.Levels {
-		allowedSuccs, exists := allowedHierarchies[level]
-		if !exists {
-			err = fmt.Errorf("hierarchy '%s' must not contain level '%s'", me.Name, level)
+		// last level must be track
+		if i == len(me.Levels)-1 && level.Type != LvlTrack {
+			err = fmt.Errorf("last level of hierarchy '%s' must be track", me.Name)
 			return
 		}
 		// is successor allowed?
+		allowedSuccs, exists := allowedHierarchies[level.Type]
+		if !exists {
+			err = fmt.Errorf("hierarchy '%s' must not contain level '%s'", me.Name, level.Type)
+			return
+		}
 		if i < len(me.Levels)-1 {
-			if !utils.Contains(allowedSuccs, me.Levels[i+1]) {
-				err = fmt.Errorf("hierarchy '%s' must not contain '%s' as successor of '%s'", me.Name, me.Levels[i+1], level)
+			if !utils.Contains(allowedSuccs, me.Levels[i+1].Type) {
+				err = fmt.Errorf("hierarchy '%s' must not contain '%s' as successor of '%s'", me.Name, me.Levels[i+1].Type, level.Type)
 				return
+			}
+		}
+		// check sort fields
+		for _, s := range level.Sort {
+			if err = validateSort(s); err != nil {
+				return
+			}
+			_, sf := splitSort(s)
+			if !utils.Contains(allowedSortFields[level.Type], sf) {
+				err = fmt.Errorf("hierarchy level '%s' cannot be sorted by '%s'", level.Type, sf)
 			}
 		}
 	}

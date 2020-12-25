@@ -30,13 +30,13 @@ type tags struct {
 
 // file info of a track
 type trackpath struct {
-	path        string
-	info        func() os.FileInfo
-	lastChanged func() int64 // time of last change in UNIX format
+	path       string
+	info       func() os.FileInfo
+	lastChange func() int64 // time of last change in UNIX format
 }
 
 // newTrackPath creates an instance of trackpath
-func newTrackpath(path string, lastChanged int64) (tp trackpath) {
+func newTrackpath(path string, lastChange int64) (tp trackpath) {
 	tp = trackpath{path: path}
 
 	var info os.FileInfo
@@ -53,12 +53,12 @@ func newTrackpath(path string, lastChanged int64) (tp trackpath) {
 		return info
 	}
 
-	tp.lastChanged = func() int64 {
-		if lastChanged != 0 {
-			return lastChanged
+	tp.lastChange = func() int64 {
+		if lastChange != 0 {
+			return lastChange
 		}
-		lastChanged = tp.info().ModTime().Unix()
-		return lastChanged
+		lastChange = tp.info().ModTime().Unix()
+		return lastChange
 	}
 
 	return

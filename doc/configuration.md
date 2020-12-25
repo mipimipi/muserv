@@ -8,7 +8,7 @@ Below we describe all configuration settings.
 
   Content-related parameters
 
-  -  `music_dir`
+  - `music_dir`
 
     Absolute path of music directory. The muserv system user must have read access. There is no default.
 
@@ -67,8 +67,50 @@ Below we describe all configuration settings.
 
   - `hierarchies`
 
-    Here, the content hierarchies that are shown in the UPnP clients are configured. Per default all available hierarchies are configured. Just remove those that you do not need. You can also change the sequence of the hierarchies. UPnP clients show the hierarchies in the same sequence as they are configured here.
-    Each hierarchy needs a name. That's the name that is also displayed by the clients. The name can be adjusted. Some hierarchies have an id. These hierarchies have a special implementation. The id must not be changed, and these hierarchies must not have levels. The other hierarchies don't have an id, but are configured by their levels. `levels: ["genre","albumartist","album"]` for instance, means that Genre is the highest level. For each Genre the tracks are then organized by AlbumArtist followed by Album. The lowest level is the track itself, which is not configured explicitly.
+    Here, the content hierarchies that are shown in the UPnP clients are configured. Possible hierarchies are:
+    
+    - Genre -> AlbumArtist -> Album -> Track
+    - Genre -> Artist -> Track
+    - Genre -> Album -> Track
+    - Genre -> Track
+    - AlbumArtist -> Album -> Track
+    - Artist -> Track
+    - Track
+
+    UPnP clients show the hierarchies in the same sequence as they are configured here. Some hierarachies are preconfigured. Just adjust or remove them or add additional hierarchies. Each hierarchy needs a name. That's the name that is also displayed by the clients. The name of the preconfigured hierarchies can be adjusted. Hierarchies are configured as list of levels (in the first hierarchy "Genre" represents one level, for example). For each level two configurations must be made:
+
+    1. `type` represents the object or tag (`genre` or `track`, for example). The type of the last level of each hierarchy must by `track`.
+    1. `sort` are the sorting criteria. They define how the data is sorted inside that level. It consists of a list of attributes preceded by the character `+` or `-` which defines if the sort order is ascending or descending for that attribute. Albums can be sorted by the attributes `title`, `year` and `lastChange`, tracks by the attributes `title`, `year`, `trackNo`, `discNo` and `lastChange`. For all other types (`genre`, `albumartist`, `artist`) no attributes are supported. These are just sorted by the content of the coresponding tag.
+
+    Example (latest albums by genre):
+
+            {
+                "name": "Latest Albums by Genre",
+                "levels": [
+                    {
+                        "type": "genre",
+                        "sort": ["+"]
+                    },
+                    {
+                        "type": "album",
+                        "sort": ["-lastChange"]
+                    },
+                    {
+                        "type": "track",
+                        "sort": ["+discNo","+trackNo"]
+                    }
+                ]
+            },
+
+    Note that within an album, tracks are sorted first by disc number and then by track number. With this configuration, albums with multiple discs can be handled.          
+
+  - `show_folders`
+
+    Whether the folder hierarchy shall be shown or not. If it shall be shown, it's the last hierarchy sequence of hierarchies that UPnP clients display.
+
+  - `folder_hierarchy_name`
+
+    The name of the folder hierarchy that is shown by UPnP clients.
 
   - `log_dir`
   

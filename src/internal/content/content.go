@@ -29,13 +29,6 @@ const (
 	PictureFolder = "/pictures/"
 )
 
-// IDs of special hierarchies
-const (
-	hierFolder       = "folder"
-	hierLatestAlbums = "latestAlbums"
-	hierLatestTracks = "latestTracks"
-)
-
 // status implements the content status
 type status struct {
 	overall string
@@ -67,7 +60,6 @@ type Content struct {
 	objects        objects          // all objects
 	albums         albums           // all albums
 	folders        folders          // all folders
-	hierarchies    []container      // hierarchies (the object level below the root object)
 	pictures       pictures         // all pictures
 	tracks         tracks           // all tracks
 	newID          func() ObjID     // object ID generator
@@ -120,9 +112,8 @@ func New(cfg *config.Cfg) (cnt *Content, err error) {
 	}
 	cnt.updater = newUpdater(cfg.Cnt.UpdateMode, cnt.tracksByPath, cnt.update)
 
-	// create root object and its direct children (the hierarchy objects)
-	cnt.makeRootObj()
-	cnt.makeHierarchyObjs()
+	// create the root object and its direct children (the hierarchy containers)
+	cnt.makeTree()
 
 	cnt.status.overall = statusWaiting
 
@@ -263,7 +254,7 @@ func (me *Content) tracksByPath(path string) *trackpaths {
 	var tps trackpaths
 	for p, t := range me.tracks {
 		if len(path) == 0 || len(path) <= len(p) && path == p[:len(path)] {
-			tps = append(tps, newTrackpath(p, t.lastChanged))
+			tps = append(tps, newTrackpath(p, t.lastChange))
 		}
 	}
 	return &tps
@@ -304,33 +295,34 @@ func (me *Content) update(ctx context.Context, tDel, tAdd *trackpaths) (count ui
 	return
 }
 
-// makeRootObj create a new root object
-func (me *Content) makeRootObj() {
+// makeTree creates the object tree. It creates a new root object and the level
+// below (i.e. the hierarchy containers)
+func (me *Content) makeTree() {
 	log.Trace("making root object ...")
 
 	root := newCtr(me, 0, "root")
 	me.objects.add(root)
 	me.root = root
 
-	log.Trace("made root object")
-}
-
-// makeHierarchy created one generic container object as direct children of the
-// root object - one for each configured hierarchy
-func (me *Content) makeHierarchyObjs() {
-	log.Trace("making hierarchy objects ...")
+	// create one generic container object as direct children of the root object
+	// - one for each configured hierarchy
 	for i, h := range me.cfg.UPnP.Hiers {
 		hier := newCtr(me, me.newID(), h.Name)
-		hier.sf = fmt.Sprint(i)
-		if h.ID == hierLatestAlbums || h.ID == hierLatestTracks {
-			hier.children.ord = sortDesc
-		}
+		hier.sf = []string{fmt.Sprintf("%02d", i)}
 		me.objects.add(hier)
-		me.hierarchies = append(me.hierarchies, hier)
-
+		me.root.addChild(hier)
+		// set the comparison functions for the sorting of child objects
+		hier.setComparison(h.Levels[0].Comparisons())
+	}
+	// create folder hierarchy
+	if me.cfg.UPnP.ShowFolders {
+		hier := newCtr(me, me.newID(), me.cfg.UPnP.FolderHierName)
+		hier.sf = []string{fmt.Sprintf("%02d", len(me.cfg.UPnP.Hiers))}
+		me.objects.add(hier)
 		me.root.addChild(hier)
 	}
-	log.Trace("made hierarchy objects")
+
+	log.Trace("made root object")
 }
 
 // cleanup removes obsolete onjects
@@ -380,13 +372,17 @@ L:
 				log.Tracef("%d tracks added", len(*tps))
 				break L
 			}
-			t, err := me.trackFromPath(&wg, tp)
+			t, err := me.trackFromPath(&wg, count, tp)
 			if err != nil {
 				log.Fatal(err)
 				return err
 			}
-			for i := 0; i < len(me.cfg.UPnP.Hiers); i++ {
-				if err := me.addToHierarchy(count, i, t); err != nil {
+			for i := 0; i < me.root.numChildren(); i++ {
+				if me.cfg.UPnP.ShowFolders && i == len(me.cfg.UPnP.Hiers) {
+					me.addToFolderHierarchy(count, me.root.childByIndex(i).(container), t)
+					continue
+				}
+				if err := me.addToHierarchy(count, &me.cfg.UPnP.Hiers[i], me.root.childByIndex(i).(container), t); err != nil {
 					return err
 				}
 			}
@@ -485,7 +481,7 @@ L:
 }
 
 // albumRefFromAlbum creates a new album reference object from an album
-func (me *Content) albumRefFromAlbum(a *album) *albumRef {
+func (me *Content) albumRefFromAlbum(a *album, sfs []config.SortField) *albumRef {
 	aRef := albumRef{
 		newCtr(me, me.newID(), a.n),
 		a,
@@ -494,31 +490,52 @@ func (me *Content) albumRefFromAlbum(a *album) *albumRef {
 	aRef.k = a.k
 
 	me.objects.add(&aRef)
+	a.refs = append(a.refs, &aRef)
+
+	// set sort fields of album reference
+	if len(sfs) > 0 {
+		aRef.sf = []string{}
+		for _, sf := range sfs {
+			var s string
+			switch sf {
+			case config.SortLastChange:
+				s = fmt.Sprintf("%020d", a.lastChange)
+			case config.SortTitle:
+				s = a.n
+			case config.SortYear:
+				s = fmt.Sprintf("%d", a.year)
+			}
+			if len(s) > 0 {
+				aRef.sf = append(aRef.sf, s)
+			}
+		}
+	}
 
 	return &aRef
 }
 
-// albumFromTrack creates a new album object from a track
-func (me *Content) albumFromTrack(t *track) (*album, error) {
-	a := album{
-		newCtr(me, me.newID(), t.tags.album),
-		t.tags.year,
-		t.tags.compilation,
-		t.tags.albumArtists,
-		t.tags.composers,
+// newAlbum creates a new album object
+func (me *Content) newAlbum(key uint64) (a *album) {
+	a = &album{
+		newCtr(me, me.newID(), ""),
+		0,
+		false,
+		[]string{},
+		[]string{},
+		0,
+		[]*albumRef{},
 	}
-	a.k = utils.HashUint64("%s%d%t", t.tags.album, t.tags.year, t.tags.compilation)
+	a.k = key
 	a.marshalFunc = newAlbumMarshalFunc(a, me.cfg.Cnt.MusicDir, me.extMusicPath, me.extPicturePath)
-	a.addChild(t)
 
-	me.objects.add(&a)
-	me.albums.add(&a)
+	me.objects.add(a)
+	me.albums.add(a)
 
-	return &a, nil
+	return
 }
 
 // trackFromPath creates a new track object from a track filepath
-func (me *Content) trackFromPath(wg *sync.WaitGroup, tp trackpath) (t *track, err error) {
+func (me *Content) trackFromPath(wg *sync.WaitGroup, count *uint32, tp trackpath) (t *track, err error) {
 	var (
 		size    int64
 		tags    *tags
@@ -546,7 +563,7 @@ func (me *Content) trackFromPath(wg *sync.WaitGroup, tp trackpath) (t *track, er
 		nonePicID{0, false},
 		tp.mimeType(),
 		size,
-		tp.lastChanged(),
+		tp.lastChange(),
 		tp.path,
 		[]*trackRef{},
 	}
@@ -559,11 +576,29 @@ func (me *Content) trackFromPath(wg *sync.WaitGroup, tp trackpath) (t *track, er
 	wg.Add(1)
 	go me.pictures.add(wg, picture, &t.picID)
 
+	// count creation of track object
+	*count++
+
+	// add track to corresponding album. Create it if is doesn't exist.
+	a, exists := me.albums[t.albumKey()]
+	if !exists {
+		a = me.newAlbum(t.albumKey())
+		a.n = t.tags.album
+		a.year = t.tags.year
+		a.compilation = t.tags.compilation
+		a.artists = t.tags.albumArtists
+		a.composers = t.tags.composers
+		a.lastChange = t.lastChange
+	}
+	a.addChild(t)
+	// count change of album container
+	*count++
+
 	return
 }
 
 // trackRefFromTrack creates a new track reference object from a track
-func (me *Content) trackRefFromTrack(t *track) *trackRef {
+func (me *Content) trackRefFromTrack(t *track, sfs []config.SortField) *trackRef {
 	tRef := trackRef{
 		newItm(me, me.newID(), t.tags.title),
 		t,
@@ -572,6 +607,29 @@ func (me *Content) trackRefFromTrack(t *track) *trackRef {
 
 	me.objects.add(&tRef)
 	t.refs = append(t.refs, &tRef)
+
+	// set sort fields of track reference
+	if len(sfs) > 0 {
+		tRef.sf = []string{}
+		for _, sf := range sfs {
+			var s string
+			switch sf {
+			case config.SortDiscNo:
+				s = fmt.Sprintf("%03d", t.tags.discNo)
+			case config.SortLastChange:
+				s = fmt.Sprintf("%020d", t.lastChange)
+			case config.SortTitle:
+				s = t.tags.title
+			case config.SortTrackNo:
+				s = fmt.Sprintf("%04d", t.tags.trackNo)
+			case config.SortYear:
+				s = fmt.Sprintf("%d", t.tags.year)
+			}
+			if len(s) > 0 {
+				tRef.sf = append(tRef.sf, s)
+			}
+		}
+	}
 
 	return &tRef
 }
@@ -587,10 +645,22 @@ func (me *Content) traceUpdate(id ObjID) {
 	me.updCounts[id]++
 }
 
+const space = "--------------------------------------------------------------------------------"
+
+func strOfLength(s string, n int) string {
+	if len(s) < n {
+		return s
+	}
+	return s[:n]
+}
+
 // AlbumsWithMultipleCovers determines albums that contain tracks that have not the
 // same cover picture
 func (me *Content) AlbumsWithMultipleCovers(w io.Writer) {
-	fmt.Fprint(w, "Albums with multiple covers:\n")
+	fmt.Fprint(w, "Albums with multiple covers:\n\n")
+	fmt.Fprintf(w, "%-18s %-30s %-30s\n", "Genre", "AlbumArtist", "Album")
+	fmt.Fprintf(w, "%s\n", space)
+
 	for _, a := range me.albums {
 		var picID nonePicID
 	L:
@@ -601,7 +671,7 @@ func (me *Content) AlbumsWithMultipleCovers(w io.Writer) {
 				continue
 			}
 			if t.picID.valid != picID.valid || t.picID.id != picID.id {
-				fmt.Fprintf(w, "Genre: '%v', albumArtist: '%v', Album: '%s'\n", t.tags.genres, a.artists, a.name())
+				fmt.Fprintf(w, "%-18s %-30s %-30s\n", strOfLength(t.tags.genres[0], 18), strOfLength(t.tags.albumArtists[0], 30), strOfLength(t.tags.album, 30))
 				break L
 			}
 		}

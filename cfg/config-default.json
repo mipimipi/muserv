@@ -25,59 +25,43 @@
     },
     "hierarchies": [
       {
-        "id": "latestAlbums",
-        "name": "Latest Albums"
+          "name": "Latest Albums",
+          "levels": [
+              {
+                  "type": "album",
+                  "sort": ["-lastChange"]
+              },
+              {
+                  "type": "track",
+                  "sort": ["+discNo","+trackNo"]
+              }
+          ]
       },
       {
-        "id": "latestTracks",
-        "name": "Latest Tracks"
-      },
-      {
-        "id": "folder",
-        "name": "Folder"
-      },
-      {
-        "name": "Genre | Album Artist | Album",
-        "levels": [
-          "genre",
-          "albumartist",
-          "album"
-        ]
-      },
-      {
-        "name": "Genre | Album",
-        "levels": [
-          "genre",
-          "album"
-        ]
-      },
-      {
-        "name": "Genre",
-        "levels": [
-          "genre"
-        ]
-      },
-      {
-        "name": "Album Artist | Album",
-        "levels": [
-          "albumartist",
-          "album"
-        ]
-      },
-      {
-        "name": "Artist",
-        "levels": [
-          "artist"
-        ]
-      },
-      {
-        "name": "Album",
-        "levels": [
-          "album"
-        ]
+          "name": "Genre | Album Artist | Album",
+          "levels": [
+              {
+                  "type": "genre",
+                  "sort": ["+"]
+              },
+              {
+                  "type": "albumartist",
+                  "sort": ["+"]
+              },
+              {
+                  "type": "album",
+                  "sort": ["+year"]
+              },
+              {
+                  "type": "track",
+                  "sort": ["+discNo","+trackNo"]
+              }
+          ]
       }
-    ]
-  },
+  ],
+  "show_folders": true,
+  "folder_hierarchy_name": "Ordner"
+},
   "log_dir": "/var/log/muserv",
   "log_level": "fatal"
 }

@@ -34,15 +34,15 @@ func indices(start, wanted uint32, len int) (first, last int) {
 }
 
 // marshalFuncMux returns a marshal function generator for container object ctr
-// that represents a certain tag. I.e. if tag is "genre", ctr represents a
-// genre container
-func marshalFuncMux(tag string, ctr container) objMarshalFunc {
-	switch tag {
-	case config.TagAlbumArtist:
+// that represents a certain hierarchy level tag. I.e. if tag lvl "genre", ctr
+// represents a genre container
+func marshalFuncMux(lvl config.LevelType, ctr container) objMarshalFunc {
+	switch lvl {
+	case config.LvlAlbumArtist:
 		return newAlbumArtistMarshalFunc(ctr)
-	case config.TagArtist:
+	case config.LvlArtist:
 		return newArtistMarshalFunc(ctr)
-	case config.TagGenre:
+	case config.LvlGenre:
 		return newGenreMarshalFunc(ctr)
 	default:
 		return newContainerMarshalFunc(ctr)
@@ -56,7 +56,7 @@ func marshalFuncMux(tag string, ctr container) objMarshalFunc {
 // picture URL (i.e. the virtual path where pictures can be requestd via HTTP).
 func newAlbumMarshalFunc(ctr container, intMusicPath, extMusicPath, extPicturePath string) objMarshalFunc {
 	return func(mode string, first, last int) []byte {
-		a := ctr.(album)
+		a := ctr.(*album)
 		buf := new(bytes.Buffer)
 		fmt.Fprintf(buf, "<dc:title>%s</dc:title>", html.EscapeString(a.name()))
 		fmt.Fprint(buf, "<upnp:class>object.container.album.musicAlbum</upnp:class>")

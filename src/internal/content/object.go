@@ -2,7 +2,7 @@ package content
 
 import (
 	"bytes"
-	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,6 +12,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
 	utils "gitlab.com/mipimipi/go-utils"
+	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
 // size of images in pixel (i.e. each image is not larger than 300px x 300px)
@@ -43,7 +44,7 @@ type object interface {
 	setParent(container)
 	parent() container
 	marshal(string, int, int) []byte
-	sortField() string
+	sortField(int) string
 	isContainer() bool
 	isItem() bool
 }
@@ -63,6 +64,8 @@ type container interface {
 	numChildren() int
 	childByIndex(int) object
 	childByKey(uint64) (object, bool)
+	invalidateOrder()
+	setComparison([]config.Comparison)
 	resetUpdCount()
 }
 
@@ -73,13 +76,6 @@ type objects map[ObjID]object
 func (me objects) add(obj object) {
 	me[obj.id()] = obj
 }
-
-type sortOrder int
-
-const (
-	sortAsc sortOrder = iota
-	sortDesc
-)
 
 // refs implements the references to child objects of a container object. Child
 // objects can be accessed via different ways:
@@ -93,15 +89,15 @@ type refs struct {
 	byID    objects
 	byKey   map[uint64]object
 	inOrder []object
-	ord     sortOrder
+	comps   []config.Comparison
 }
 
 // newRefs create a new refs instance
-func newRefs(ord sortOrder) (r refs) {
+func newRefs(comps []config.Comparison) (r refs) {
 	return refs{
 		byID:  make(objects),
 		byKey: make(map[uint64]object),
-		ord:   ord,
+		comps: comps,
 	}
 }
 
@@ -129,16 +125,26 @@ func (me *refs) item(index int) object {
 		for _, obj := range me.byID {
 			me.inOrder = append(me.inOrder, obj)
 		}
-		var less func(i, j int) bool
-		if me.ord == sortAsc {
-			less = func(i, j int) bool { return me.inOrder[i].sortField() < me.inOrder[j].sortField() }
-		} else {
-			less = func(i, j int) bool { return me.inOrder[i].sortField() > me.inOrder[j].sortField() }
-		}
-		sort.Slice(me.inOrder, less)
+		sort.Slice(me.inOrder,
+			func(i, j int) bool {
+				for k := 0; k < len(me.comps); k++ {
+					if me.inOrder[i].sortField(k) == me.inOrder[j].sortField(k) {
+						continue
+					}
+					return me.comps[k](me.inOrder[i].sortField(k), me.inOrder[j].sortField(k))
+				}
+				return false
+			},
+		)
 	}
 
 	return me.inOrder[index]
+}
+
+// invalidateOrder clears the sorted array to trigger a new sort before the
+// next access)
+func (me *refs) invalidateOrder() {
+	me.inOrder = []object{}
 }
 
 // len returns the number of child objects
@@ -151,7 +157,7 @@ type obj struct {
 	i           ObjID          // object ID
 	n           string         // object name
 	k           uint64         // object key (tyically a hash)
-	sf          string         // sort field (the field that is used for sorting an object array)
+	sf          []string       // sort fields (the fields that are used for sorting an object array)
 	p           container      // parent object (nil if object has no parent)
 	marshalFunc objMarshalFunc // function to marshal object (i.e. create a representation in DIDL)
 }
@@ -163,7 +169,7 @@ func newObj(cnt *Content, id ObjID, name string) *obj {
 		i:           id,
 		k:           utils.HashUint64(name),
 		n:           name,
-		sf:          strings.ToLower(name),
+		sf:          []string{strings.ToLower(name)},
 		marshalFunc: func(mode string, first int, last int) []byte { return []byte{} },
 	}
 	return &obj
@@ -174,7 +180,7 @@ func (me *obj) key() uint64             { return me.k }
 func (me *obj) name() string            { return me.n }
 func (me *obj) setParent(ctr container) { me.p = ctr }
 func (me *obj) parent() container       { return me.p }
-func (me *obj) sortField() string       { return me.sf }
+func (me *obj) sortField(i int) string  { return me.sf[i] }
 func (me *obj) marshal(mode string, first, last int) []byte {
 	return me.marshalFunc(mode, first, last)
 }
@@ -198,7 +204,7 @@ func newCtr(cnt *Content, id ObjID, name string) *ctr {
 	ctr := ctr{
 		newObj(cnt, id, name),
 		0,
-		newRefs(sortAsc),
+		newRefs([]config.Comparison{func(a, b string) bool { return a < b }}),
 	}
 	ctr.marshalFunc = newContainerMarshalFunc(&ctr)
 	return &ctr
@@ -230,6 +236,17 @@ func (me *ctr) childByKey(key uint64) (object, bool) {
 }
 func (me *ctr) isContainer() bool {
 	return true
+}
+
+// invalidateOrder triggers a new sort of the children before the next access
+func (me *ctr) invalidateOrder() {
+	me.children.invalidateOrder()
+}
+
+// setComparison set the comparison functions that are needed to sort the
+// children of the container
+func (me *ctr) setComparison(comps []config.Comparison) {
+	me.children.comps = comps
 }
 
 // resetUpdCount recursively resets the ContainerUpdateIDValue
@@ -266,8 +283,57 @@ type album struct {
 	*ctr
 	year        int
 	compilation bool
-	artists     []string // album artists
-	composers   []string // album composers
+	artists     []string    // album artists
+	composers   []string    // album composers
+	lastChange  int64       // UNIX time of last change of track file
+	refs        []*albumRef // corresponding track references
+}
+
+// addChild adds a track as child and adjusts lastChange. If necessary, the
+// sorting of corresponding albumRefs is invalidated
+func (me *album) addChild(obj object) {
+	// only tracks can be added as children to album
+	if reflect.TypeOf(obj) != reflect.TypeOf((*track)(nil)) {
+		log.Warnf("tried of add an object of type '%s' to album", reflect.TypeOf(obj).String())
+		return
+	}
+
+	me.children.add(obj)
+	obj.setParent(me)
+	me.cnt.traceUpdate(me.i)
+
+	// if lastChange was adjusted, propagate the change to all albumRefs
+	t := obj.(*track)
+	if t.lastChange > me.lastChange {
+		me.lastChange = t.lastChange
+		for _, aRef := range me.refs {
+			aRef.parent().invalidateOrder()
+		}
+	}
+}
+
+// delChild removes a track (only tracks can be children of albums) and adjusts
+// lastChange. If necessary, the sorting of corresponding albumRefs is
+// invalidated
+func (me *album) delChild(obj object) {
+	me.children.del(obj)
+	obj.setParent(nil)
+	me.cnt.traceUpdate(me.i)
+
+	// adjust lastChange, propagate the change to all albumRefs if necessary
+	t := obj.(*track)
+	if t.lastChange == me.lastChange {
+		me.lastChange = 0
+		for i := 0; i < me.numChildren(); i++ {
+			t := me.childByIndex(i).(*track)
+			if t.lastChange > me.lastChange {
+				me.lastChange = t.lastChange
+			}
+		}
+		for _, aRef := range me.refs {
+			aRef.parent().invalidateOrder()
+		}
+	}
 }
 
 // albums maps album keys to the corresponding album instance. An album key is
@@ -361,13 +427,34 @@ type nonePicID struct {
 // object exists
 type track struct {
 	*itm
-	tags        *tags       // tags of the track
-	picID       nonePicID   // ID of the cover picture (can be "null")
-	mimeType    string      // mime type of track file
-	size        int64       // size of track file in bytes
-	lastChanged int64       // UNIX time of last change of track file
-	path        string      // path of track file
-	refs        []*trackRef // corresponding track references
+	tags       *tags       // tags of the track
+	picID      nonePicID   // ID of the cover picture (can be "null")
+	mimeType   string      // mime type of track file
+	size       int64       // size of track file in bytes
+	lastChange int64       // UNIX time of last change of track file
+	path       string      // path of track file
+	refs       []*trackRef // corresponding track references
+}
+
+// albumKey calcutes the key of an album as FNV hash from album title, year and
+// whether it's a compilation or not
+func (me *track) albumKey() uint64 {
+	return utils.HashUint64("%s%d%t", me.tags.album, me.tags.year, me.tags.compilation)
+}
+
+// tagsByLevelType returns the tag values that correspond to a certain hierarchy
+// level (lvl). I.e. if the hierarchy level is "genre", the values of tag
+// "genre" are returned
+func (me *track) tagsByLevelType(lvl config.LevelType) []string {
+	switch lvl {
+	case config.LvlGenre:
+		return me.tags.genres
+	case config.LvlAlbumArtist:
+		return me.tags.albumArtists
+	case config.LvlArtist:
+		return me.tags.artists
+	}
+	return []string{}
 }
 
 // tracks maps track paths to the corresponding track instance
@@ -382,11 +469,4 @@ func (me tracks) add(t *track) { me[t.path] = t }
 type trackRef struct {
 	*itm
 	track *track
-}
-
-// sortFieldFromTrackNo creates a string sort field from the track number. To
-// avoid a sorting such as "1", "10", "2", 20", ... leading zeros are added.
-// Thus the sequence will be "0001", "0002", ..., "0010", ..., "0020", ...
-func (me *trackRef) sortFieldFromTrackNo(trackNo int) {
-	me.sf = fmt.Sprintf("%04d", trackNo)
 }
