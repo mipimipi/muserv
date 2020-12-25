@@ -436,10 +436,10 @@ type track struct {
 	refs       []*trackRef // corresponding track references
 }
 
-// albumKey calcutes the key of an album as FNV hash from album title, year and
-// whether it's a compilation or not
+// albumKey calcutes the key of an album as FNV hash from album artists,album
+// title, year and whether it's a compilation or not
 func (me *track) albumKey() uint64 {
-	return utils.HashUint64("%s%d%t", me.tags.album, me.tags.year, me.tags.compilation)
+	return utils.HashUint64("%v%s%d%t", me.tags.albumArtists, me.tags.album, me.tags.year, me.tags.compilation)
 }
 
 // tagsByLevelType returns the tag values that correspond to a certain hierarchy

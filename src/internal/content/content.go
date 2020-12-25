@@ -441,7 +441,7 @@ L:
 			// remove from objects
 			delete(me.objects, t.id())
 			// remove from albums
-			a, exists := me.albums[utils.HashUint64("%s%d%t", t.tags.album, t.tags.year, t.tags.compilation)]
+			a, exists := me.albums[t.albumKey()]
 			if exists {
 				a.delChild(t)
 				if a.numChildren() == 0 {
@@ -684,8 +684,9 @@ func (me *Content) AlbumsWithMultipleCovers(w io.Writer) {
 // printed to w
 func (me *Content) InconsistentAlbums(w io.Writer) {
 	albums := make(map[string]struct {
-		year        int
-		compilation bool
+		albumArtists []string
+		year         int
+		compilation  bool
 	})
 	incons := make(map[string]bool)
 
@@ -696,9 +697,14 @@ func (me *Content) InconsistentAlbums(w io.Writer) {
 		album, exists := albums[key]
 		if !exists {
 			albums[key] = struct {
-				year        int
-				compilation bool
-			}{year: t.tags.year, compilation: t.tags.compilation}
+				albumArtists []string
+				year         int
+				compilation  bool
+			}{
+				albumArtists: t.tags.albumArtists,
+				year:         t.tags.year,
+				compilation:  t.tags.compilation,
+			}
 			continue
 		}
 		if album.year != t.tags.year || album.compilation != t.tags.compilation {
