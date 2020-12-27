@@ -119,27 +119,27 @@ var allowedSortFields = map[LevelType]([]SortField){
 type Cfg struct {
 	Cnt      cnt    `json:"content"`
 	UPnP     upnp   `json:"upnp"`
+	CacheDir string `json:"cache_dir"`
 	LogDir   string `json:"log_dir"`
 	LogLevel string `json:"log_level"`
 }
 type cnt struct {
 	MusicDir       string        `json:"music_dir"`
 	Separator      string        `json:"separator"`
-	CacheDir       string        `json:"cache_dir"`
 	UpdateMode     string        `json:"update_mode"`
 	UpdateInterval time.Duration `json:"update_interval"`
+	Hiers          []Hierarchy   `json:"hierarchies"`
+	ShowFolders    bool          `json:"show_folders"`
+	FolderHierName string        `json:"folder_hierarchy_name"`
 }
 type upnp struct {
-	Interfaces     []string    `json:"interfaces"`
-	Port           int         `json:"port"`
-	ServerName     string      `json:"server_name"`
-	UUID           string      `json:"udn"`
-	MaxAge         int         `json:"max_age"`
-	StatusFile     string      `json:"status_file"`
-	Device         device      `json:"device"`
-	Hiers          []Hierarchy `json:"hierarchies"`
-	ShowFolders    bool        `json:"show_folders"`
-	FolderHierName string      `json:"folder_hierarchy_name"`
+	Interfaces []string `json:"interfaces"`
+	Port       int      `json:"port"`
+	ServerName string   `json:"server_name"`
+	UUID       string   `json:"udn"`
+	MaxAge     int      `json:"max_age"`
+	StatusFile string   `json:"status_file"`
+	Device     device   `json:"device"`
 }
 type device struct {
 	Manufacturer     string `json:"manufacturer"`
@@ -247,7 +247,7 @@ func (me *Cfg) Validate() (err error) {
 	if err = validateDir(me.Cnt.MusicDir, "music_dir"); err != nil {
 		return
 	}
-	if err = validateDir(me.Cnt.CacheDir, "cache_dir"); err != nil {
+	if err = validateDir(me.CacheDir, "cache_dir"); err != nil {
 		return
 	}
 	if err = validateDir(me.LogDir, "log_dir"); err != nil {
@@ -288,12 +288,12 @@ func (me *Cfg) Validate() (err error) {
 	}
 
 	// validate hierarchies
-	if len(me.UPnP.Hiers) == 0 {
+	if len(me.Cnt.Hiers) == 0 {
 		err = fmt.Errorf("at least one hierarchy must be defined")
 		return
 	}
-	for i := 0; i < len(me.UPnP.Hiers); i++ {
-		if err = me.UPnP.Hiers[i].validate(); err != nil {
+	for i := 0; i < len(me.Cnt.Hiers); i++ {
+		if err = me.Cnt.Hiers[i].validate(); err != nil {
 			return
 		}
 	}

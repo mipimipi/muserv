@@ -16,10 +16,6 @@ Below we describe all configuration settings.
 
     Some tags can have multiple value. `separator` contains the string that is used as separator for these values. Often `\\` or `;` is used. Default is `;`.
 
-  - `cache_dir`
-
-    Cache directory for muserv. Default is `/var/cache/muserv`. The muserv system user must have write access to this directory.
-
   - `update_mode` 
 
     To keep the muserv content up to date if anything in the music directory is changed, muserv provides an update mechanism that runs regularly. `update_mode` specifies which mode is used for that. Two different modes are possible:
@@ -32,38 +28,6 @@ Below we describe all configuration settings.
   - `update_interval` 
 
      Time in seconds after which muserv checks for changes in the music direcrtory. Default is `60` (one minute).
-
-* `upnp`
-
-  UPnP-related parameters
-
-  - `interfaces` 
-
-    Network interfaces to serve. Per default (i.e. if no interface is configured) all interfaces are served.
-
-  - `port`
-
-    Port for HTTP requests to the server (device and service descriptions, SOAP, media transfer etc.). Default is `8008`.
-
-  - `server_name`
-  
-    Server name that is shown by UPnP clients. Default is `Music Server`.
-
-  - `uuid`
-
-    Unique identifier for the server. It must be of the form `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. If `uuid` is not set (which is the default), muserv creates a new identifier. 
-
-  - `max_age`
-
-    Time interval in seconds for the renewal of the alive notification. Default is `86400` (i.e. once per day).
-  
-  - `status_dir` 
-  
-    File to persist status information (absolute path). Default is `<CACHE-DIR>/status.json`.
-
-  - `device`
-  
-    This clubs together parameters that are required for the XML description of the root device. There's a default value for each of these parameters. 
 
   - `hierarchies`
 
@@ -111,6 +75,42 @@ Below we describe all configuration settings.
   - `folder_hierarchy_name`
 
     The name of the folder hierarchy that is shown by UPnP clients.
+
+* `upnp`
+
+  UPnP-related parameters
+
+  - `interfaces` 
+
+    Network interfaces to serve. Per default (i.e. if no interface is configured) all interfaces are served.
+
+  - `port`
+
+    Port for HTTP requests to the server (device and service descriptions, SOAP, media transfer etc.). Default is `8008`.
+
+  - `server_name`
+  
+    Server name that is shown by UPnP clients. Default is `Music Server`.
+
+  - `uuid`
+
+    Unique identifier for the server. It must be of the form `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. If `uuid` is not set (which is the default), muserv creates a new identifier. 
+
+  - `max_age`
+
+    Time interval in seconds for the renewal of the alive notification. Default is `86400` (i.e. once per day).
+  
+  - `status_dir` 
+  
+    File to persist status information (absolute path). Default is `<CACHE-DIR>/status.json`.
+
+  - `device`
+  
+    This clubs together parameters that are required for the XML description of the root device. There's a default value for each of these parameters. 
+
+  - `cache_dir`
+
+    Cache directory for muserv. Default is `/var/cache/muserv`. The muserv system user must have write access to this directory.
 
   - `log_dir`
   

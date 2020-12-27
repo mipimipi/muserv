@@ -306,7 +306,7 @@ func (me *Content) makeTree() {
 
 	// create one generic container object as direct children of the root object
 	// - one for each configured hierarchy
-	for i, h := range me.cfg.UPnP.Hiers {
+	for i, h := range me.cfg.Cnt.Hiers {
 		hier := newCtr(me, me.newID(), h.Name)
 		hier.sf = []string{fmt.Sprintf("%02d", i)}
 		me.objects.add(hier)
@@ -315,9 +315,9 @@ func (me *Content) makeTree() {
 		hier.setComparison(h.Levels[0].Comparisons())
 	}
 	// create folder hierarchy
-	if me.cfg.UPnP.ShowFolders {
-		hier := newCtr(me, me.newID(), me.cfg.UPnP.FolderHierName)
-		hier.sf = []string{fmt.Sprintf("%02d", len(me.cfg.UPnP.Hiers))}
+	if me.cfg.Cnt.ShowFolders {
+		hier := newCtr(me, me.newID(), me.cfg.Cnt.FolderHierName)
+		hier.sf = []string{fmt.Sprintf("%02d", len(me.cfg.Cnt.Hiers))}
 		me.objects.add(hier)
 		me.root.addChild(hier)
 	}
@@ -378,11 +378,11 @@ L:
 				return err
 			}
 			for i := 0; i < me.root.numChildren(); i++ {
-				if me.cfg.UPnP.ShowFolders && i == len(me.cfg.UPnP.Hiers) {
+				if me.cfg.Cnt.ShowFolders && i == len(me.cfg.Cnt.Hiers) {
 					me.addToFolderHierarchy(count, me.root.childByIndex(i).(container), t)
 					continue
 				}
-				if err := me.addToHierarchy(count, &me.cfg.UPnP.Hiers[i], me.root.childByIndex(i).(container), t); err != nil {
+				if err := me.addToHierarchy(count, &me.cfg.Cnt.Hiers[i], me.root.childByIndex(i).(container), t); err != nil {
 					return err
 				}
 			}
