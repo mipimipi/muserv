@@ -51,6 +51,12 @@ func LoadService(filepath string) (svc *Service, err error) {
 	return
 }
 
+// ClearAttr clear attributes that are under the control of the UPnP server
+// such as ConfigID
+func (me *Service) ClearAttr() {
+	me.ConfigID = 0
+}
+
 // Hash calculates the FNV hash of the XML representation of a service description
 func (me *Service) Hash() (hash uint64, err error) {
 	var s []byte

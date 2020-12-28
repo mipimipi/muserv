@@ -96,7 +96,7 @@ func (me *Server) setStatus() (err error) {
 		if id[:9] == "service::" {
 			svc, ok := me.services[id[9:]]
 			if !ok {
-				log.Tracef("service '%s' was deleted: increase ConfiID", id[9:])
+				log.Tracef("service '%s' was deleted: increase ConfigID", id[9:])
 				me.configID.Incr()
 				continue
 			}
@@ -145,9 +145,9 @@ func (me *Server) writeStatus() error {
 		Locals:   me.Locals,
 	}
 	// - hashes
-	//   initialize ConfigID to have a proper hash (ConfigID is not part of the
-	//   configuration and thus would distort the hash)
-	me.Device.Desc.ConfigID = 0
+	//   clear attributes that are not relevant for the status and that
+	//   otherwise would distort the hash
+	me.Device.Desc.ClearAttr()
 	st.Hashes = make(map[string]uint64)
 	h, err := me.Device.Desc.Hash()
 	if err != nil {
@@ -155,9 +155,9 @@ func (me *Server) writeStatus() error {
 	}
 	st.Hashes["device::root"] = h
 	for id, svc := range me.services {
-		// initialize ConfigID to have a proper hash (ConfigID is not part of the
-		// configuration and thus would distort the hash)
-		svc.desc.ConfigID = 0
+		// clear attributes that are not relevant for the status and that
+		// otherwise would distort the hash
+		svc.desc.ClearAttr()
 		if h, err = svc.desc.Hash(); err != nil {
 			return err
 		}

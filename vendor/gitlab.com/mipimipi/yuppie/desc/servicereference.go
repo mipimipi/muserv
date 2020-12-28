@@ -21,6 +21,14 @@ type ServiceReference struct {
 	EventSubURL string `xml:"eventSubURL"`
 }
 
+// ClearAttr clear attributes that are under the control of the UPnP server
+// such as service URLs
+func (me *ServiceReference) ClearAttr() {
+	me.SCPDURL = ""
+	me.ControlURL = ""
+	me.EventSubURL = ""
+}
+
 // Trim removes leading and trailing spaces for some attributes
 func (me *ServiceReference) Trim() {
 	me.ServiceType = strings.TrimSpace(me.ServiceType)

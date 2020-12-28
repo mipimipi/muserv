@@ -1,3 +1,9 @@
+## [v0.3.3](https://gitlab.com/mipimipi/yuppie/-/tags/v0.3.3) (2020-12-28)
+
+### Changed
+
+* Corrected setting of CONFIGID.UPNP.ORG (it was increase too often)
+
 ## [v0.3.2](https://gitlab.com/mipimipi/yuppie/-/tags/v0.3.2) (2020-12-18)
 
 ### Added

@@ -102,6 +102,13 @@ func LoadRootDevice(filepath string) (dvc *RootDevice, err error) {
 	return
 }
 
+// ClearAttr clear attributes that are under the control of the UPnP server
+// such as ConfigID
+func (me *RootDevice) ClearAttr() {
+	me.ConfigID = 0
+	me.Device.ClearAttr()
+}
+
 // Hash calculates the FNV hash of the XML representation of a root device description
 func (me *RootDevice) Hash() (hash uint64, err error) {
 	var s []byte
@@ -134,6 +141,20 @@ func (me *RootDevice) Validate() (ok bool, res []string) {
 	_ = me.Device.Validate(&res)
 
 	return
+}
+
+// ClearAttr clear attributes that are under the control of the UPnP server
+func (me *Device) ClearAttr() {
+	// clear attributes of service references
+	svcRefs := &(me.Services)
+	for i := 0; i < len(me.Services); i++ {
+		(*svcRefs)[i].ClearAttr()
+	}
+	// clear attributes of embedded devices
+	dvcs := &(me.Devices)
+	for i := 0; i < len(me.Devices); i++ {
+		(*dvcs)[i].ClearAttr()
+	}
 }
 
 // Trim removes leading and trailing spaces for some attributes

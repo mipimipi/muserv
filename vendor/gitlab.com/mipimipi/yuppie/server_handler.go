@@ -138,8 +138,6 @@ func (me *Server) deviceIconHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("server error: cannot unescape URL: %s", r.URL.String()), http.StatusInternalServerError)
 	}
 
-	log.Tracef("icon served from '%s'", filepath.Join(me.cfg.IconRootDir, iconPath[len(deviceIconPath):]))
-
 	// return icon
 	http.ServeFile(w, r, filepath.Join(me.cfg.IconRootDir, iconPath[len(deviceIconPath):]))
 }

@@ -332,7 +332,7 @@ func (me *Server) sendEvents() {
 	log.Trace("initial events sent")
 }
 
-// serDescPaths sets the URL paths for service descriptions, service control
+// setDescPaths sets the URL paths for service descriptions, service control
 // and event subscription in the device description
 func (me *Server) setDescPaths() {
 	var setDescPaths func(*desc.Device)
