@@ -366,7 +366,6 @@ func (me *Server) setHTTPHandler() {
 			fmt.Fprint(w, stateVar(svSystemUpdateID))
 			fmt.Fprintf(w, "%s\n", stateVar(svContainerUpdateIDs))
 
-			fmt.Fprint(w, "Content status: ")
 			me.cnt.WriteStatus(w)
 		},
 	)

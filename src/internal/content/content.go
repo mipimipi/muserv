@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"runtime"
 	"sync"
 
 	"github.com/dhowden/tag"
@@ -12,6 +13,8 @@ import (
 	l "github.com/sirupsen/logrus"
 	utils "gitlab.com/mipimipi/go-utils"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 var log *l.Entry = l.WithFields(l.Fields{"srv": "content"})
@@ -228,19 +231,23 @@ func (me *Content) Errors() <-chan error {
 func (me *Content) WriteStatus(w io.Writer) {
 	switch me.status.overall {
 	case statusWaiting:
-		fmt.Fprint(w, "waiting\n")
+		fmt.Fprint(w, "Waiting ...\n")
 
 	case statusRunning:
-		fmt.Fprint(w, "running\n")
-		fmt.Fprintf(w, "%6d tracks\n", len(me.tracks))
-		fmt.Fprintf(w, "%6d albums\n", len(me.albums))
-		fmt.Fprintf(w, "%6d cover pictures\n", len(me.pictures.data))
+		fmt.Fprint(w, "    Content:\n")
+		fmt.Fprintf(w, "    %6d tracks\n", len(me.tracks))
+		fmt.Fprintf(w, "    %6d albums\n", len(me.albums))
+		fmt.Fprintf(w, "    %6d cover pictures\n\n", len(me.pictures.data))
+		// memory consumption
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		message.NewPrinter(language.English).Fprintf(w, "    Memory consumption: %d Bytes\n", m.HeapAlloc)
 
 	case statusUpdating:
-		fmt.Fprint(w, "updating\n")
+		fmt.Fprint(w, "   Updating content ...\n")
 		if me.status.update.total > 0 {
 			fmt.Fprintf(w,
-				"    %s %d tracks, %d done (%.2f%%)\n",
+				"        %s %d tracks, %d done (%.2f%%)\n",
 				me.status.update.task,
 				me.status.update.total,
 				me.status.update.done,

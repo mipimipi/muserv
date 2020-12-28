@@ -12,4 +12,5 @@ require (
 	github.com/spf13/cobra v1.1.1
 	gitlab.com/mipimipi/go-utils v0.0.0-20201202054522-1a910c15d40b
 	gitlab.com/mipimipi/yuppie v0.3.2
+	golang.org/x/text v0.3.3
 )
