@@ -470,21 +470,3 @@ type trackRef struct {
 	*itm
 	track *track
 }
-
-func (me objects) dump() {
-	var print func(object, int)
-	space := "                                                                                "
-	tabSize := 4
-
-	print = func(obj object, level int) {
-		log.Tracef("%s[%08d]=%s", space[:tabSize*level], obj.id(), obj.name())
-		if obj.isContainer() {
-			ctr := obj.(container)
-			for i := 0; i < ctr.numChildren(); i++ {
-				print(ctr.childByIndex(i), level+1)
-			}
-		}
-	}
-
-	print(me[0], 0)
-}

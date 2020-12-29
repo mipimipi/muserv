@@ -294,9 +294,6 @@ func (me *Content) update(ctx context.Context, tDel, tAdd *trackpaths) (count ui
 	// required
 	me.cleanup()
 
-	// TODO: remove
-	me.objects.dump()
-
 	// set status
 	me.status.overall = statusRunning
 
