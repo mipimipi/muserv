@@ -238,15 +238,6 @@ func Load() (cfg Cfg, err error) {
 // Validate check if the configuration is complete and correct. If it's not, an
 // error is returned
 func (me *Cfg) Validate() (err error) {
-	// check if muserv system user exists
-	if err = validateUser(); err != nil {
-		return
-	}
-
-	// validate the existence of directories
-	if err = validateDir(me.Cnt.MusicDir, "music_dir"); err != nil {
-		return
-	}
 	if err = validateDir(me.CacheDir, "cache_dir"); err != nil {
 		return
 	}
@@ -254,48 +245,79 @@ func (me *Cfg) Validate() (err error) {
 		return
 	}
 
-	if me.Cnt.UpdateMode != "notify" && me.Cnt.UpdateMode != "scan" {
-		err = fmt.Errorf("unknown update_mode '%s'", me.Cnt.UpdateMode)
+	// check if muserv system user exists
+	if err = validateUser(); err != nil {
 		return
 	}
-	if me.Cnt.UpdateInterval <= 0 {
+
+	// validate UPnP config
+	if err = me.UPnP.validate(); err != nil {
+		return
+	}
+
+	// validate content config
+	if err = me.Cnt.validate(); err != nil {
+		return
+	}
+
+	return
+}
+
+// validate checks if the content part of the configuration is complete and
+// correct. If it's not, an error is returned
+func (me *cnt) validate() (err error) {
+	if err = validateDir(me.MusicDir, "music_dir"); err != nil {
+		return
+	}
+	if me.UpdateMode != "notify" && me.UpdateMode != "scan" {
+		err = fmt.Errorf("unknown update_mode '%s'", me.UpdateMode)
+		return
+	}
+	if me.UpdateInterval <= 0 {
 		err = fmt.Errorf("update_interval must be > 0")
 		return
 	}
-	if me.UPnP.Port <= 0 {
+
+	// validate hierarchies
+	if len(me.Hiers) == 0 {
+		err = fmt.Errorf("at least one hierarchy must be defined")
+		return
+	}
+	for i := 0; i < len(me.Hiers); i++ {
+		if err = me.Hiers[i].validate(); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+// validate checks if the UPnP part of the configuration is complete and
+// correct. If it's not, an error is returned
+func (me *upnp) validate() (err error) {
+	if me.Port <= 0 {
 		err = fmt.Errorf("port must be > 0")
 		return
 	}
-	if len(me.UPnP.ServerName) == 0 {
+	if len(me.ServerName) == 0 {
 		err = fmt.Errorf("the server must have a name, but server_name is empty")
 		return
 	}
 	// if a UUID/UDN is set it must be a valid UUID. If it's empty, a new and
 	// valid UUID will be generated later on
-	if len(me.UPnP.UUID) > 0 {
-		if _, err = uuid.Parse(me.UPnP.UUID); err != nil {
-			err = errors.Wrapf(err, "the servers' UDN '%s' is not a valid UUID", me.UPnP.UUID)
+	if len(me.UUID) > 0 {
+		if _, err = uuid.Parse(me.UUID); err != nil {
+			err = errors.Wrapf(err, "the servers' UDN '%s' is not a valid UUID", me.UUID)
 			return
 		}
 	}
-	if len(me.UPnP.StatusFile) == 0 {
+	if len(me.StatusFile) == 0 {
 		err = fmt.Errorf("status_file must not be empty")
 		return
 	}
-	if me.UPnP.MaxAge <= 0 {
+	if me.MaxAge <= 0 {
 		err = fmt.Errorf("max_age must be > 0")
 		return
-	}
-
-	// validate hierarchies
-	if len(me.Cnt.Hiers) == 0 {
-		err = fmt.Errorf("at least one hierarchy must be defined")
-		return
-	}
-	for i := 0; i < len(me.Cnt.Hiers); i++ {
-		if err = me.Cnt.Hiers[i].validate(); err != nil {
-			return
-		}
 	}
 
 	return
