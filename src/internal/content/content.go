@@ -687,7 +687,7 @@ func (me *Content) AlbumsWithMultipleCovers(w io.Writer) {
 
 // InconsistentAlbums checks if albums with the same title from the same album
 // artists have the same year and compilation flag assigned. If that's not the
-// case, that's an indicator for an inconsistentcy and the album data is
+// case, that's an indicator for an inconsistency and the album data is
 // printed to w
 func (me *Content) InconsistentAlbums(w io.Writer) {
 	albums := make(map[string]struct {

@@ -62,7 +62,7 @@ func (me *Content) addToHierarchyLevel(count *uint32, hier *config.Hierarchy, in
 }
 
 // addToSubHierarchy adds track t to the hierarchy defined by hier as level with
-// the given index as children under ctr. This fucntion only takes care of the
+// the given index as children under ctr. This function only takes care of the
 // "lower node" (track and - if required - album). I.e. if required, also the
 // album level is created - after that, the hierarchy is like: ... <- ctr
 // [<- albumRef] <- trackRef. count is increased by the number of object changes
