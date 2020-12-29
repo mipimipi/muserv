@@ -3,7 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/gitlab.com/mipimipi/muserv)](https://goreportcard.com/report/gitlab.com/mipimipi/muserv)
 [![REUSE status](https://api.reuse.software/badge/gitlab.com/mipimipi/muserv)](https://api.reuse.software/info/gitlab.com/mipimipi/muserv)
 
-Simple command line UPnP server for music files. muserv runs on Linux. 
+Simple command line UPnP server for music files that supports a flexible structuring of your music in content hierarchies. muserv runs on Linux. 
 
 ## Installation
 
@@ -94,3 +94,12 @@ as `root`.
 Now, you can see the muserv status by entering the URL <IP-address-of-your-server:8008> in a browser.
 
 Have fun with muserv :)
+
+## Limitations
+
+So far, muserv does not support the following features:
+
+* searching for music
+* playlists
+* manipulation of tag values (for display or sorting, for example)
+* UPnP "tracking changes option" - However, muserv keeps track of changes in your music library.
