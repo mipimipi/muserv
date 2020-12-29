@@ -5,11 +5,11 @@ stages:
 
 deploy:
     stage: deploy
- only:
-    changes:
-        - pkg/AUR/PKGBUILD
-    refs:
-        - master
+    only:
+        changes:
+            - pkg/AUR/PKGBUILD
+        refs:
+            - master
 
     before_script:
         # update arch linux and install additional packages  
