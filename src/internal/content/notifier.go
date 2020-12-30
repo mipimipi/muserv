@@ -140,7 +140,7 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 
 	// map for storing changed paths that were already processed (for some
 	// changes notify delivers the same path multiple times)
-	processed := make(map[string]bool)
+	processed := make(map[string]struct{})
 
 	// determine the tracks that were changed (according to inotify) and that
 	// are either contained in the muserv content (which is an indicator that
@@ -152,7 +152,7 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 		if _, processed := processed[chg.Path()]; processed {
 			continue
 		}
-		processed[chg.Path()] = true
+		processed[chg.Path()] = struct{}{}
 
 		log.Tracef("%s :: %s", chg.Event().String(), chg.Path())
 
