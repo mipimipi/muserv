@@ -2,6 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/gitlab.com/mipimipi/muserv)](https://goreportcard.com/report/gitlab.com/mipimipi/muserv)
 [![REUSE status](https://api.reuse.software/badge/gitlab.com/mipimipi/muserv)](https://api.reuse.software/info/gitlab.com/mipimipi/muserv)
+[![pipeline status](https://gitlab.com/mipimipi/muserv/badges/master/pipeline.svg)](https://gitlab.com/mipimipi/muserv/-/commits/master)
 
 Simple command line UPnP server for music files that supports a flexible structuring of your music in content hierarchies. muserv runs on Linux. 
 
