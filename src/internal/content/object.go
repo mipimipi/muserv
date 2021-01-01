@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dhowden/tag"
 	"github.com/disintegration/imaging"
+	"github.com/mipimipi/tag"
 	"github.com/pkg/errors"
 	utils "gitlab.com/mipimipi/go-utils"
 	"gitlab.com/mipimipi/muserv/src/internal/config"

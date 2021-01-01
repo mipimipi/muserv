@@ -4,13 +4,13 @@
 [![REUSE status](https://api.reuse.software/badge/gitlab.com/mipimipi/muserv)](https://api.reuse.software/info/gitlab.com/mipimipi/muserv)
 [![pipeline status](https://gitlab.com/mipimipi/muserv/badges/master/pipeline.svg)](https://gitlab.com/mipimipi/muserv/-/commits/master)
 
-Simple command line UPnP server for music files that supports a flexible structuring of your music in content hierarchies. muserv runs on Linux. 
+Simple command line [UPnP](https://en.wikipedia.org/wiki/Universal_Plug_and_Play) server for music files that allows a flexible structuring of your music in content hierarchies. Supported music file types include [MP3](https://en.wikipedia.org/wiki/MP3), [FLAC](https://en.wikipedia.org/wiki/FLAC), [Ogg Vorbis](https://en.wikipedia.org/wiki/Vorbis), [Opus](https://en.wikipedia.org/wiki/Opus_(audio_format)), [AAC](https://en.wikipedia.org/wiki/Advanced_Audio_Coding), [Alac](https://en.wikipedia.org/wiki/Apple_Lossless) and [MP4/M4a](https://en.wikipedia.org/wiki/MPEG-4_Part_14). muserv runs on Linux.
 
 ## Installation
 
 ### Installation with Package Managers
 
-For Arch Linux (and other Linux distros that can install packages from the Arch User Repository) there's a [muserv package in AUR](https://aur.archlinux.org/packages/muserv-git/).
+For [Arch Linux](https://archlinux.org/) (and other Linux distros that can install packages from the Arch User Repository) there's a [muserv package in AUR](https://aur.archlinux.org/packages/muserv-git/).
 
 ### Manual Installation
 

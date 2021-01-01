@@ -38,19 +38,20 @@ const (
 )
 
 // audioMimeTypes contains the audio mime types that muserv supports
-var audioMimeTypes = map[string]bool{
-	"audio/aac":    true,
-	"audio/flac":   true,
-	"audio/mp4":    true,
-	"audio/mpeg":   true,
-	"audio/ogg":    true,
-	"audio/x-flac": true,
+var audioMimeTypes = map[string]struct{}{
+	"audio/aac":    {},
+	"audio/flac":   {},
+	"audio/mp4":    {},
+	"audio/mpeg":   {},
+	"audio/ogg":    {},
+	"audio/opus":   {},
+	"audio/x-flac": {},
 }
 
 // imageMimeTypes contains the image mime types that muserv supports
-var imageMimeTypes = map[string]bool{
-	"image/jpeg": true,
-	"image/png":  true,
+var imageMimeTypes = map[string]struct{}{
+	"image/jpeg": {},
+	"image/png":  {},
 }
 
 // LevelType represents the type of a music hierarchy level

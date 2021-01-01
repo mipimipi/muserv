@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/dhowden/tag"
+	"github.com/mipimipi/tag"
 	"github.com/pkg/errors"
 	l "github.com/sirupsen/logrus"
 	utils "gitlab.com/mipimipi/go-utils"

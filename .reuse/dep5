@@ -7,7 +7,7 @@ Files: go.mod
        go.sum
        VERSION
        vendor/modules.txt
-Copyright: 2020 Michael Picht <mipi@fsfe.org>
+Copyright: 2020-2021 Michael Picht <mipi@fsfe.org>
 License: CC-BY-NC-SA-4.0
 
 Files: .gitignore
@@ -21,7 +21,7 @@ Files: .gitignore
        ressources/*
        src/*
        systemd/*
-Copyright: 2020 Michael Picht <mipi@fsfe.org>
+Copyright: 2020-2021 Michael Picht <mipi@fsfe.org>
 License: GPL-3.0-or-later
 
 Files: vendor/gitlab.com/mipimipi/go-utils/*
@@ -32,7 +32,7 @@ Files: vendor/gitlab.com/mipimipi/yuppie/*
 Copyright: 2020 Michael Picht <mipi@fsfe.org>
 License: GPL-3.0-or-later
 
-Files: vendor/github.com/dhowden/tag/*
+Files: vendor/github.com/mipimipi/tag/*
 Copyright: 2015 David Howden
 License: BSD-2-Clause
 

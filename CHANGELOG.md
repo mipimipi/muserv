@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.2.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.2.1) (2021-01-01)
+
+* Added
+
+  Support of Ogg Opus.
+
 ## [v0.2.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.2.0) (2020-12-29)
 
 * Added

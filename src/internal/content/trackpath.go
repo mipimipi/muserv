@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/dhowden/tag"
+	"github.com/mipimipi/tag"
 	"github.com/pkg/errors"
 )
 
