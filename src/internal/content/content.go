@@ -257,11 +257,11 @@ func (me *Content) WriteStatus(w io.Writer) {
 }
 
 // tracksByPath returns all tracks whose filepath begins with path
-func (me *Content) tracksByPath(path string) *trackpaths {
-	var tps trackpaths
+func (me *Content) tracksByPath(path string) *fileInfos {
+	var tps fileInfos
 	for p, t := range me.tracks {
 		if len(path) == 0 || len(path) <= len(p) && path == p[:len(path)] {
-			tps = append(tps, newTrackpath(p, t.lastChange))
+			tps = append(tps, newTrackInfo(p, t.lastChange))
 		}
 	}
 	return &tps
@@ -270,7 +270,7 @@ func (me *Content) tracksByPath(path string) *trackpaths {
 // update updates the muserv content. tDel and tAdd contain the track files
 // that must be deleted (tDel) or added (tAdd). count contains the number of
 // object changes that happened during content update
-func (me *Content) update(ctx context.Context, tDel, tAdd *trackpaths) (count uint32, err error) {
+func (me *Content) update(ctx context.Context, tDel, tAdd *fileInfos) (count uint32, err error) {
 	log.Trace("updating content ...")
 
 	// set status
@@ -293,6 +293,9 @@ func (me *Content) update(ctx context.Context, tDel, tAdd *trackpaths) (count ui
 	// remove obsolete objects such as cover pictures that are no longer
 	// required
 	me.cleanup()
+
+	// TODO: remove
+	me.objects.dump()
 
 	// set status
 	me.status.overall = statusRunning
@@ -349,7 +352,7 @@ func (me *Content) cleanup() {
 
 // addTracks adds tracks to muserv content. count is set to the number of object
 // changes that happened during that activity
-func (me *Content) addTracks(ctx context.Context, count *uint32, tps *trackpaths) (err error) {
+func (me *Content) addTracks(ctx context.Context, count *uint32, tps *fileInfos) (err error) {
 	if len(*tps) == 0 {
 		log.Trace("no tracks to add")
 		return
@@ -361,7 +364,7 @@ func (me *Content) addTracks(ctx context.Context, count *uint32, tps *trackpaths
 	me.status.update.task = "adding"
 	me.status.update.total = len(*tps)
 
-	tpaths := make(chan trackpath)
+	tpaths := make(chan fileInfo)
 	go func() {
 		for _, tp := range *tps {
 			tpaths <- tp
@@ -379,7 +382,7 @@ L:
 				log.Tracef("%d tracks added", len(*tps))
 				break L
 			}
-			t, err := me.trackFromPath(&wg, count, tp)
+			t, err := me.trackFromPath(&wg, count, tp.(trackInfo))
 			if err != nil {
 				log.Fatal(err)
 				return err
@@ -407,7 +410,7 @@ L:
 
 // delTracks removes tracks to muserv content. count is set to the number of
 // object changes that happened during that activity
-func (me *Content) delTracks(ctx context.Context, count *uint32, tps *trackpaths) {
+func (me *Content) delTracks(ctx context.Context, count *uint32, tps *fileInfos) {
 	if len(*tps) == 0 {
 		log.Trace("no tracks to delete")
 		return
@@ -419,7 +422,7 @@ func (me *Content) delTracks(ctx context.Context, count *uint32, tps *trackpaths
 	me.status.update.task = "deleting"
 	me.status.update.total = len(*tps)
 
-	tpaths := make(chan trackpath)
+	tpaths := make(chan fileInfo)
 	go func() {
 		for _, tp := range *tps {
 			tpaths <- tp
@@ -437,14 +440,14 @@ L:
 			}
 
 			// get corresponding track object
-			t, exists := me.tracks[tp.path]
+			t, exists := me.tracks[tp.path()]
 			if !exists {
 				continue
 			}
 			// count deletion of track object
 			*count++
 			// remove from tracks
-			delete(me.tracks, tp.path)
+			delete(me.tracks, tp.path())
 			// remove from objects
 			delete(me.objects, t.id())
 			// remove from albums
@@ -542,7 +545,7 @@ func (me *Content) newAlbum(key uint64) (a *album) {
 }
 
 // trackFromPath creates a new track object from a track filepath
-func (me *Content) trackFromPath(wg *sync.WaitGroup, count *uint32, tp trackpath) (t *track, err error) {
+func (me *Content) trackFromPath(wg *sync.WaitGroup, count *uint32, tp trackInfo) (t *track, err error) {
 	var (
 		size    int64
 		tags    *tags
@@ -551,18 +554,13 @@ func (me *Content) trackFromPath(wg *sync.WaitGroup, count *uint32, tp trackpath
 
 	// get tags and picture
 	if tags, picture, err = tp.metadata(me.cfg.Cnt.Separator); err != nil {
-		err = errors.Wrapf(err, "cannot create track from filepath '%s'", tp.path)
+		err = errors.Wrapf(err, "cannot create track from filepath '%s'", tp.path())
 		log.Fatal(err)
 		return
 	}
 
 	// get size of music track
-	size, err = tp.size()
-	if err != nil {
-		err = errors.Wrapf(err, "cannot create track from filepath '%s'", tp.path)
-		log.Fatal(err)
-		return nil, err
-	}
+	size = tp.size()
 
 	t = &track{
 		newItm(me, me.newID(), tags.title),
@@ -571,7 +569,7 @@ func (me *Content) trackFromPath(wg *sync.WaitGroup, count *uint32, tp trackpath
 		tp.mimeType(),
 		size,
 		tp.lastChange(),
-		tp.path,
+		tp.path(),
 		[]*trackRef{},
 	}
 	t.marshalFunc = newTrackMarshalFunc(t, me.cfg.Cnt.MusicDir, me.extMusicPath, me.extPicturePath)

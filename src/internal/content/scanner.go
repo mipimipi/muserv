@@ -15,12 +15,12 @@ type scanner struct {
 	updNotif     chan UpdateNotification
 	upd          chan struct{}
 	errs         chan error
-	tracksByPath func(string) *trackpaths
-	update       func(context.Context, *trackpaths, *trackpaths) (uint32, error)
+	tracksByPath func(string) *fileInfos
+	update       func(context.Context, *fileInfos, *fileInfos) (uint32, error)
 }
 
 // newScanner creates a new scanner instance
-func newScanner(tracksByPaths func(string) *trackpaths, update func(context.Context, *trackpaths, *trackpaths) (uint32, error)) *scanner {
+func newScanner(tracksByPaths func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) *scanner {
 	sc := new(scanner)
 
 	sc.errs = make(chan error)
@@ -68,7 +68,7 @@ func (me *scanner) run(ctx context.Context, wg *sync.WaitGroup) {
 					wg.Done()
 				}()
 
-				tDel, tAdd := fullScan(cfg.Cnt.MusicDir, me.tracksByPath)
+				fiDel, fiAdd := fullScan(cfg.Cnt.MusicDir, me.tracksByPath)
 
 				// channel to notify server about finalized update
 				updated := make(chan uint32)
@@ -88,7 +88,7 @@ func (me *scanner) run(ctx context.Context, wg *sync.WaitGroup) {
 				// or added objects
 				var count uint32
 				var err error
-				if count, err = me.update(ctx, tDel, tAdd); err != nil {
+				if count, err = me.update(ctx, fiDel, fiAdd); err != nil {
 					me.errs <- err
 					return
 				}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
-	"gitlab.com/mipimipi/go-utils/file"
+	f "gitlab.com/mipimipi/go-utils/file"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -21,12 +21,12 @@ type notifier struct {
 	errs         chan error
 	updNotif     chan UpdateNotification
 	upd          chan struct{}
-	tracksByPath func(string) *trackpaths
-	update       func(context.Context, *trackpaths, *trackpaths) (uint32, error)
+	tracksByPath func(string) *fileInfos
+	update       func(context.Context, *fileInfos, *fileInfos) (uint32, error)
 }
 
 // newNotifier creates a new instance of notifier
-func newNotifier(tracksByPath func(string) *trackpaths, update func(context.Context, *trackpaths, *trackpaths) (uint32, error)) *notifier {
+func newNotifier(tracksByPath func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) *notifier {
 	nf := new(notifier)
 
 	nf.errs = make(chan error)
@@ -113,7 +113,7 @@ func (me *notifier) updateNotification() <-chan UpdateNotification {
 	return me.updNotif
 }
 
-// processChanges detects which tracks need to either be deleted from or added
+// processChanges detects which files need to either be deleted from or added
 // to the muserv content based on the file system changes that have been
 // observed by inotify. The DB is adjusted accordingly.
 func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
@@ -142,11 +142,11 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 	// changes notify delivers the same path multiple times)
 	processed := make(map[string]struct{})
 
-	// determine the tracks that were changed (according to inotify) and that
+	// determine the files that were changed (according to inotify) and that
 	// are either contained in the muserv content (which is an indicator that
 	// they might have to be deleted from the content) or in the music dir
 	// (which is an indicator that they might have to be added to the content)
-	var tCnt, tDir trackpaths
+	var fiCnt, fiDir fileInfos
 	for _, chg := range changes {
 		// don't process a changed path twice
 		if _, processed := processed[chg.Path()]; processed {
@@ -156,8 +156,8 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 
 		log.Tracef("%s :: %s", chg.Event().String(), chg.Path())
 
-		// collect all changed tracks that are contained in music dir
-		exists, err := file.Exists(chg.Path())
+		// collect all changed files that are contained in music dir
+		exists, err := f.Exists(chg.Path())
 		if err != nil {
 			err = errors.Wrapf(err, "cannot process changed path '%s'", chg.Path())
 			log.Error(err)
@@ -165,35 +165,35 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 		}
 		if exists {
 			// if it's a directory: Recursively expand it to the (supported)
-			// music track files that are contained in that directory.
-			// Otherwise, go forward with the single file
-			isDir, err := file.IsDir(chg.Path())
+			// files that are contained in that directory. Otherwise, go
+			// forward with the single file
+			isDir, err := f.IsDir(chg.Path())
 			if err != nil {
 				err = errors.Wrapf(err, "cannot process changed path '%s'", chg.Path())
 				log.Error(err)
 				continue
 			}
 			if isDir {
-				tDir = append(tDir, *tracksFromDir(chg.Path())...)
+				fiDir = append(fiDir, *filesFromDir(chg.Path())...)
 			} else {
-				if !isDir && config.IsValidAudioFile(chg.Path()) {
-					tDir = append(tDir, newTrackpath(chg.Path(), 0))
+				if !isDir && config.IsValidTrackFile(chg.Path()) {
+					fiDir = append(fiDir, newTrackInfo(chg.Path(), 0))
 				}
 			}
 		}
 
 		// collect all changed tracks that are contained in the content
-		tCnt = append(tCnt, *me.tracksByPath(chg.Path())...)
+		fiCnt = append(fiCnt, *me.tracksByPath(chg.Path())...)
 	}
 
-	// determine tracks to be deleted from or added to the content. tCnt and
-	// tDir can contain duplicates. Thus, these duplicates must be removed
+	// determine files to be deleted from or added to the content. fiCnt and
+	// fiDir can contain duplicates. Thus, these duplicates must be removed
 	// before diff is executed.
-	sort.Sort(tCnt)
-	tCnt.removeDuplicates()
-	sort.Sort(tDir)
-	tDir.removeDuplicates()
-	tDel, tAdd := diff(tCnt, tDir)
+	sort.Sort(fiCnt)
+	fiCnt.removeDuplicates()
+	sort.Sort(fiDir)
+	fiDir.removeDuplicates()
+	tDel, tAdd := diff(fiCnt, fiDir)
 
 	// create channel to notify server about finalized update
 	updated := make(chan uint32)

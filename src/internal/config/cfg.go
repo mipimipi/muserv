@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"os/user"
-	"path"
+	p "path"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,6 +52,14 @@ var audioMimeTypes = map[string]struct{}{
 var imageMimeTypes = map[string]struct{}{
 	"image/jpeg": {},
 	"image/png":  {},
+}
+
+// playlistMimeTypes contains the playlist mime types that muserv supports
+var playlistMimeTypes = map[string]struct{}{
+	"application/pls+xml":           {},
+	"application/vnd.apple.mpegurl": {},
+	"audio/x-mpegurl":               {},
+	"audio/x-scpls":                 {},
 }
 
 // LevelType represents the type of a music hierarchy level
@@ -201,10 +209,23 @@ func (me *level) assembleSortAttr() {
 	}
 }
 
-// IsValidAudioFile returns true if file has a mime type that is relevant for muserv as per
-// the configuration, otherwise false is returned
-func IsValidAudioFile(file string) bool {
-	_, exists := audioMimeTypes[mime.TypeByExtension(path.Ext(file))]
+// IsValidFile returns true if path has a mime type that is relevant for muserv
+// as per the configuration, otherwise false is returned
+func IsValidFile(path string) bool {
+	return IsValidPlaylistFile(path) || IsValidTrackFile(path)
+}
+
+// IsValidPlaylistFile returns true if path is a playlist that is relevant for
+// muserv as per the configuration, otherwise false is returned
+func IsValidPlaylistFile(path string) bool {
+	_, exists := playlistMimeTypes[mime.TypeByExtension(p.Ext(path))]
+	return exists
+}
+
+// IsValidTrackFile returns true if path is a music track that is relevant for
+// muserv as per the configuration, otherwise false is returned
+func IsValidTrackFile(path string) bool {
+	_, exists := audioMimeTypes[mime.TypeByExtension(p.Ext(path))]
 	return exists
 }
 
