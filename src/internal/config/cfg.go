@@ -209,12 +209,6 @@ func (me *level) assembleSortAttr() {
 	}
 }
 
-// IsValidFile returns true if path has a mime type that is relevant for muserv
-// as per the configuration, otherwise false is returned
-func IsValidFile(path string) bool {
-	return IsValidPlaylistFile(path) || IsValidTrackFile(path)
-}
-
 // IsValidPlaylistFile returns true if path is a playlist that is relevant for
 // muserv as per the configuration, otherwise false is returned
 func IsValidPlaylistFile(path string) bool {

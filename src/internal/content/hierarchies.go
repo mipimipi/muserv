@@ -8,24 +8,24 @@ import (
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
-// addToHierarchy adds track t to the hierarchy defined by hier below the
-// hierarchy root ctr. count is increased by the number of object changes that happened
-// during this activity
-func (me *Content) addToHierarchy(count *uint32, hier *config.Hierarchy, ctr container, t *track) (err error) {
-	return me.addToHierarchyLevel(count, hier, 0, ctr, t)
+// addTrackToHierarchy adds track t to the hierarchy defined by hier below the
+// hierarchy root ctr. count is increased by the number of object changes that
+// happened during this activity
+func (me *Content) addTrackToHierarchy(count *uint32, hier *config.Hierarchy, ctr container, t *track) (err error) {
+	return me.addTrackToHierarchyLevel(count, hier, 0, ctr, t)
 }
 
-// addToHierarchyLevel adds track t to the hierarchy defined by hier as level
-// with the given index as children under ctr.
+// addToTrackHierarchyLevel adds track t to the hierarchy defined by hier as
+// level with the given index as children under ctr.
 // addToHierarchyLevel itself adds the "upper nodes" (i.e. everything - genre,
 // album artist etc. - above the album and track level of the hierarchy).
 // The function calls itself recursively until a "lower node" (track and - if
 // required - album) is reached. To add these nodes, addToSubHierarchy is
 // called. count is increased by the number of object changes that happened
 // during this activity
-func (me *Content) addToHierarchyLevel(count *uint32, hier *config.Hierarchy, index int, ctr container, t *track) (err error) {
+func (me *Content) addTrackToHierarchyLevel(count *uint32, hier *config.Hierarchy, index int, ctr container, t *track) (err error) {
 	if hier.Levels[index].Type == config.LvlAlbum || hier.Levels[index].Type == config.LvlTrack {
-		if err = me.addToSubHierarchy(count, hier, index, ctr, t); err != nil {
+		if err = me.addTrackToSubHierarchy(count, hier, index, ctr, t); err != nil {
 			return
 		}
 		return
@@ -53,7 +53,7 @@ func (me *Content) addToHierarchyLevel(count *uint32, hier *config.Hierarchy, in
 			ctrNext = ctrNew
 		}
 
-		if err = me.addToHierarchyLevel(count, hier, index+1, ctrNext, t); err != nil {
+		if err = me.addTrackToHierarchyLevel(count, hier, index+1, ctrNext, t); err != nil {
 			return
 		}
 	}
@@ -61,13 +61,13 @@ func (me *Content) addToHierarchyLevel(count *uint32, hier *config.Hierarchy, in
 	return
 }
 
-// addToSubHierarchy adds track t to the hierarchy defined by hier as level with
+// addTrackToSubHierarchy adds track t to the hierarchy defined by hier as level with
 // the given index as children under ctr. This function only takes care of the
 // "lower node" (track and - if required - album). I.e. if required, also the
 // album level is created - after that, the hierarchy is like: ... <- ctr
 // [<- albumRef] <- trackRef. count is increased by the number of object changes
 // that happened during this activity
-func (me *Content) addToSubHierarchy(count *uint32, hier *config.Hierarchy, index int, ctr container, t *track) (err error) {
+func (me *Content) addTrackToSubHierarchy(count *uint32, hier *config.Hierarchy, index int, ctr container, t *track) (err error) {
 	// create track reference
 	tRef := me.trackRefFromTrack(t, hier.Levels[len(hier.Levels)-1].SortFields())
 	// count creation of trackRef object
@@ -113,10 +113,10 @@ func (me *Content) addToSubHierarchy(count *uint32, hier *config.Hierarchy, inde
 	return
 }
 
-// addToFolderHierarchy adds track t to the folder hierarchy. ctr is the
+// addTrackToFolderHierarchy adds track t to the folder hierarchy. ctr is the
 // corresponding hierarchy object (i.e. one level below root). count is
 // increased by the number of object changes that happened during this activity
-func (me *Content) addToFolderHierarchy(count *uint32, ctr container, t *track) {
+func (me *Content) addTrackToFolderHierarchy(count *uint32, ctr container, t *track) {
 	// create track reference. In the folder hierarchy, tracks are ordered by
 	// file name
 	tRef := me.trackRefFromTrack(t, []config.SortField{})

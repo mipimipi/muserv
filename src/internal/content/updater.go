@@ -72,7 +72,10 @@ func filesFromDir(dir string) *fileInfos {
 	// filter: only accepts files that have the supported mime types
 	filter := func(srcFile f.Info, vp f.ValidPropagate) (bool, f.ValidPropagate) {
 		if !srcFile.IsDir() && srcFile.Mode().IsRegular() {
-			// TODO: distinguish between track, playlist etc.
+			if config.IsValidPlaylistFile(srcFile.Path()) {
+				fileInfos <- newPlaylistInfo(srcFile.Path(), 0)
+				return true, f.NoneFromSuper
+			}
 			if config.IsValidTrackFile(srcFile.Path()) {
 				fileInfos <- newTrackInfo(srcFile.Path(), 0)
 				return true, f.NoneFromSuper
@@ -148,7 +151,7 @@ func diff(fiCnt fileInfos, fiDir fileInfos) (fiDel, fiAdd fileInfos) {
 //      and (b) determines and returns the differences (i.e. which files must
 // 	            be deleted from and added to the content hierarchies to make it
 //              consistent with the music dir)
-func fullScan(musicDir string, tracksByPath func(string) *fileInfos) (*fileInfos, *fileInfos) {
+func fullScan(musicDir string, filesByPath func(string) *fileInfos) (*fileInfos, *fileInfos) {
 	log.Trace("scanning ...")
 
 	// get changes / differences between music directory and muserv content
@@ -157,7 +160,7 @@ func fullScan(musicDir string, tracksByPath func(string) *fileInfos) (*fileInfos
 
 	// retrieve tracks from content
 	go func(ret chan<- *fileInfos) {
-		ret <- tracksByPath("")
+		ret <- filesByPath("")
 	}(cntData)
 
 	// retrieve tracks from music dir

@@ -32,6 +32,7 @@ type infoKind int
 
 const (
 	infoNone infoKind = iota
+	infoPlaylist
 	infoTrack
 )
 
@@ -84,11 +85,22 @@ func (me baseInfo) lastChange() int64 { return me.lChg() }
 func (me baseInfo) mimeType() string  { return mime.TypeByExtension(path.Ext(me.path())) }
 func (me baseInfo) size() int64       { return me.info().Size() }
 
+type playlistInfo struct {
+	baseInfo
+}
+
+// newPlaylistInfo creates an instance of playlistInfo
+func newPlaylistInfo(path string, lastChange int64) trackInfo {
+	return trackInfo{newBaseInfo(path, lastChange)}
+}
+
+func (me playlistInfo) kind() infoKind { return infoPlaylist }
+
 type trackInfo struct {
 	baseInfo
 }
 
-// newTrackInfo creates an instance of trackpath
+// newTrackInfo creates an instance of trackInfo
 func newTrackInfo(path string, lastChange int64) trackInfo {
 	return trackInfo{newBaseInfo(path, lastChange)}
 }

@@ -203,7 +203,7 @@ func (me *Content) InitialUpdate(ctx context.Context) (err error) {
 	// extract config from context
 	cfg := ctx.Value(config.KeyCfg).(config.Cfg)
 
-	// get changes that must be applied to DB
+	// get changes that must be applied to content
 	tDel, tAdd := fullScan(cfg.Cnt.MusicDir, me.tracksByPath)
 
 	// update content
@@ -267,10 +267,10 @@ func (me *Content) tracksByPath(path string) *fileInfos {
 	return &tps
 }
 
-// update updates the muserv content. tDel and tAdd contain the track files
-// that must be deleted (tDel) or added (tAdd). count contains the number of
-// object changes that happened during content update
-func (me *Content) update(ctx context.Context, tDel, tAdd *fileInfos) (count uint32, err error) {
+// update updates the muserv content. fiDel and fiAdd contain the files that
+// must be deleted (fiDel) or added (fiAdd). count contains the number of object
+// changes that happened during content update
+func (me *Content) update(ctx context.Context, fiDel, fiAdd *fileInfos) (count uint32, err error) {
 	log.Trace("updating content ...")
 
 	// set status
@@ -282,20 +282,36 @@ func (me *Content) update(ctx context.Context, tDel, tAdd *fileInfos) (count uin
 	// initialize container update counter
 	me.updCounts = make(map[ObjID]uint32)
 
-	// delete obsolete tracks
-	me.delTracks(ctx, &count, tDel)
-
-	// add new tracks
-	if err = me.addTracks(ctx, &count, tAdd); err != nil {
+	// delete files
+	if err = me.procUpdates(ctx, &count, fiDel,
+		nil,
+		func(wg *sync.WaitGroup, count *uint32, ti trackInfo) error { return me.delTrack(wg, count, ti) },
+	); err != nil {
 		return
 	}
+
+	// add files
+	if err = me.procUpdates(ctx, &count, fiAdd,
+		nil,
+		func(wg *sync.WaitGroup, count *uint32, ti trackInfo) error { return me.addTrack(wg, count, ti) },
+	); err != nil {
+		return
+	}
+
+	/*
+		// update tracks
+		me.delTracks(ctx, &count, fiDel.trackInfos())
+		if err = me.addTracks(ctx, &count, fiAdd.trackInfos()); err != nil {
+			return
+		}
+
+		// update playlists
+		// TODO
+	*/
 
 	// remove obsolete objects such as cover pictures that are no longer
 	// required
 	me.cleanup()
-
-	// TODO: remove
-	me.objects.dump()
 
 	// set status
 	me.status.overall = statusRunning
@@ -350,26 +366,26 @@ func (me *Content) cleanup() {
 	me.pictures.data = newPics
 }
 
-// addTracks adds tracks to muserv content. count is set to the number of object
-// changes that happened during that activity
-func (me *Content) addTracks(ctx context.Context, count *uint32, tps *fileInfos) (err error) {
-	if len(*tps) == 0 {
-		log.Trace("no tracks to add")
+func (me *Content) procUpdates(ctx context.Context, count *uint32, fis *fileInfos,
+	procPlaylistUpdate func(*sync.WaitGroup, *uint32, playlistInfo) error,
+	procTrackUpdate func(*sync.WaitGroup, *uint32, trackInfo) error) (err error) {
+	if len(*fis) == 0 {
+		log.Trace("no updates to process")
 		return
 	}
 
-	log.Tracef("adding %d tracks ...", len(*tps))
+	log.Tracef("processing %d updates ...", len(*fis))
 
 	// set update status values
-	me.status.update.task = "adding"
-	me.status.update.total = len(*tps)
+	me.status.update.task = "processing updates"
+	me.status.update.total = len(*fis)
 
-	tpaths := make(chan fileInfo)
+	fInfos := make(chan fileInfo)
 	go func() {
-		for _, tp := range *tps {
-			tpaths <- tp
+		for _, fi := range *fis {
+			fInfos <- fi
 		}
-		close(tpaths)
+		close(fInfos)
 	}()
 
 	var wg sync.WaitGroup
@@ -377,29 +393,27 @@ func (me *Content) addTracks(ctx context.Context, count *uint32, tps *fileInfos)
 L:
 	for {
 		select {
-		case tp, ok := <-tpaths:
+		case fi, ok := <-fInfos:
 			if !ok {
-				log.Tracef("%d tracks added", len(*tps))
+				log.Tracef("%d updates processed", len(*fis))
 				break L
 			}
-			t, err := me.trackFromPath(&wg, count, tp.(trackInfo))
-			if err != nil {
-				log.Fatal(err)
-				return err
-			}
-			for i := 0; i < me.root.numChildren(); i++ {
-				if me.cfg.Cnt.ShowFolders && i == len(me.cfg.Cnt.Hiers) {
-					me.addToFolderHierarchy(count, me.root.childByIndex(i).(container), t)
-					continue
+			switch fi.kind() {
+			case infoPlaylist:
+				if err = procPlaylistUpdate(&wg, count, fi.(playlistInfo)); err != nil {
+					log.Fatal(err)
 				}
-				if err := me.addToHierarchy(count, &me.cfg.Cnt.Hiers[i], me.root.childByIndex(i).(container), t); err != nil {
-					return err
+			case infoTrack:
+				if err = procTrackUpdate(&wg, count, fi.(trackInfo)); err != nil {
+					log.Fatal(err)
 				}
+			default:
+				log.Errorf("unknown fileInfo type %d: cannot process update", fi.kind())
 			}
 			me.status.update.done++
 
 		case <-ctx.Done():
-			log.Trace("adding tracks interrupted")
+			log.Trace("processing updates interrupted")
 			break L
 		}
 	}
@@ -408,86 +422,67 @@ L:
 	return
 }
 
-// delTracks removes tracks to muserv content. count is set to the number of
-// object changes that happened during that activity
-func (me *Content) delTracks(ctx context.Context, count *uint32, tps *fileInfos) {
-	if len(*tps) == 0 {
-		log.Trace("no tracks to delete")
+func (me *Content) addTrack(wg *sync.WaitGroup, count *uint32, ti trackInfo) (err error) {
+	t, err := me.trackFromPath(wg, count, ti)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	for i := 0; i < me.root.numChildren(); i++ {
+		if me.cfg.Cnt.ShowFolders && i == len(me.cfg.Cnt.Hiers) {
+			me.addTrackToFolderHierarchy(count, me.root.childByIndex(i).(container), t)
+			continue
+		}
+		if err := me.addTrackToHierarchy(count, &me.cfg.Cnt.Hiers[i], me.root.childByIndex(i).(container), t); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func (me *Content) delTrack(wg *sync.WaitGroup, count *uint32, ti trackInfo) (err error) {
+	// get corresponding track object
+	t, exists := me.tracks[ti.path()]
+	if !exists {
 		return
 	}
-
-	log.Tracef("deleting %d tracks ...", len(*tps))
-
-	// set update status values
-	me.status.update.task = "deleting"
-	me.status.update.total = len(*tps)
-
-	tpaths := make(chan fileInfo)
-	go func() {
-		for _, tp := range *tps {
-			tpaths <- tp
-		}
-		close(tpaths)
-	}()
-
-L:
-	for {
-		select {
-		case tp, ok := <-tpaths:
-			if !ok {
-				log.Tracef("%d tracks deleted", len(*tps))
-				break L
-			}
-
-			// get corresponding track object
-			t, exists := me.tracks[tp.path()]
-			if !exists {
-				continue
-			}
-			// count deletion of track object
+	// count deletion of track object
+	*count++
+	// remove from tracks
+	delete(me.tracks, ti.path())
+	// remove from objects
+	delete(me.objects, t.id())
+	// remove from albums
+	a, exists := me.albums[t.albumKey()]
+	if exists {
+		a.delChild(t)
+		if a.numChildren() == 0 {
+			delete(me.objects, a.id())
+			delete(me.albums, a.key())
+			// count deletion of album object
 			*count++
-			// remove from tracks
-			delete(me.tracks, tp.path())
-			// remove from objects
-			delete(me.objects, t.id())
-			// remove from albums
-			a, exists := me.albums[t.albumKey()]
-			if exists {
-				a.delChild(t)
-				if a.numChildren() == 0 {
-					delete(me.objects, a.id())
-					delete(me.albums, a.key())
-					// count deletion of album object
-					*count++
-				}
-			}
-			// remove from hierarchies
-			for _, tRef := range t.refs {
-				var obj object = tRef
-				for parent := tRef.parent(); parent.parent() != nil; parent = parent.parent() {
-					delete(me.objects, obj.id())
-					// count object deletion
-					*count++
-
-					// delete obj from parent and stop propagating this deletion
-					// upwards the hierarchy if there are still other children
-					parent.delChild(obj)
-					if parent.numChildren() > 0 {
-						break
-					}
-
-					// prepare for next loop
-					obj = parent
-				}
-			}
-			me.status.update.done++
-
-		case <-ctx.Done():
-			log.Trace("deleting tracks interrupted")
-			break L
 		}
-
 	}
+	// remove from hierarchies
+	for _, tRef := range t.refs {
+		var obj object = tRef
+		for parent := tRef.parent(); parent.parent() != nil; parent = parent.parent() {
+			delete(me.objects, obj.id())
+			// count object deletion
+			*count++
+
+			// delete obj from parent and stop propagating this deletion
+			// upwards the hierarchy if there are still other children
+			parent.delChild(obj)
+			if parent.numChildren() > 0 {
+				break
+			}
+
+			// prepare for next loop
+			obj = parent
+		}
+	}
+	return
 }
 
 // albumRefFromAlbum creates a new album reference object from an album
