@@ -3,13 +3,12 @@ image: archlinux:latest
 stages: 
     - deploy
 
-deploy:
+deploy-aur:
     stage: deploy
-    only:
-        changes:
-            - pkg/AUR/PKGBUILD
-        refs:
-            - master
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "master"'
+          changes:
+            - pkg/AUR/PKGBUILD   
 
     before_script:
         # update arch linux and install additional packages  
