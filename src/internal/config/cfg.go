@@ -56,10 +56,9 @@ var imageMimeTypes = map[string]struct{}{
 
 // playlistMimeTypes contains the playlist mime types that muserv supports
 var playlistMimeTypes = map[string]struct{}{
-	"application/pls+xml":           {},
-	"application/vnd.apple.mpegurl": {},
-	"audio/x-mpegurl":               {},
-	"audio/x-scpls":                 {},
+	"application/pls+xml": {},
+	"audio/x-mpegurl":     {},
+	"audio/x-scpls":       {},
 }
 
 // LevelType represents the type of a music hierarchy level
@@ -124,7 +123,7 @@ var allowedSortFields = map[LevelType]([]SortField){
 	LvlTrack: {SortTitle, SortYear, SortLastChange, SortTrackNo, SortDiscNo},
 }
 
-// Cfg stores the data from the MuServ configuration file
+// Cfg stores the data from the muserv configuration file
 type Cfg struct {
 	Cnt      cnt    `json:"content"`
 	UPnP     upnp   `json:"upnp"`
@@ -133,13 +132,15 @@ type Cfg struct {
 	LogLevel string `json:"log_level"`
 }
 type cnt struct {
-	MusicDir       string        `json:"music_dir"`
-	Separator      string        `json:"separator"`
-	UpdateMode     string        `json:"update_mode"`
-	UpdateInterval time.Duration `json:"update_interval"`
-	Hiers          []Hierarchy   `json:"hierarchies"`
-	ShowFolders    bool          `json:"show_folders"`
-	FolderHierName string        `json:"folder_hierarchy_name"`
+	MusicDir         string        `json:"music_dir"`
+	Separator        string        `json:"separator"`
+	UpdateMode       string        `json:"update_mode"`
+	UpdateInterval   time.Duration `json:"update_interval"`
+	Hiers            []Hierarchy   `json:"hierarchies"`
+	ShowPlaylists    bool          `json:"show_playlists"`
+	PlaylistHierName string        `json:"playlist_hierarchy_name"`
+	ShowFolders      bool          `json:"show_folders"`
+	FolderHierName   string        `json:"folder_hierarchy_name"`
 }
 type upnp struct {
 	Interfaces []string `json:"interfaces"`
@@ -303,6 +304,18 @@ func (me *cnt) validate() (err error) {
 		if err = me.Hiers[i].validate(); err != nil {
 			return
 		}
+	}
+
+	// if playlists shall be shown in hierarchy, a name must be configured
+	if me.ShowPlaylists && len(me.PlaylistHierName) == 0 {
+		err = errors.New("hierarchy node for playlists must have a name")
+		return
+	}
+
+	// if folder shall be shown in hierarchy, a name must be configured
+	if me.ShowFolders && len(me.FolderHierName) == 0 {
+		err = errors.New("hierarchy node for folders must have a name")
+		return
 	}
 
 	return

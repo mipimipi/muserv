@@ -193,6 +193,8 @@ github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
+github.com/ushis/m3u v0.0.0-20150127162843-94396b784733 h1:m4zGEkIeft/gfUs469WS/gB6NT3RtkG8zQrOvCOzovE=
+github.com/ushis/m3u v0.0.0-20150127162843-94396b784733/go.mod h1:/w56gU05vgM74JSy2/xFy6tUQ9vJBMiciHNvyIEU1UY=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 gitlab.com/mipimipi/go-utils v0.0.0-20201122030825-d32044ffa407/go.mod h1:kq+Cr3cnwF9qxLP1TwC+28P7sx1M8jGntsfr9iUJSO0=
 gitlab.com/mipimipi/go-utils v0.0.0-20201202054522-1a910c15d40b h1:f0vAB3MZnTTOjvxhDiA37QE627qzSx6O08J3+4ucKuM=

@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/url"
 	"runtime"
+	"strings"
 	"sync"
 
-	"github.com/mipimipi/tag"
 	"github.com/pkg/errors"
 	l "github.com/sirupsen/logrus"
 	utils "gitlab.com/mipimipi/go-utils"
@@ -64,6 +64,7 @@ type Content struct {
 	albums         albums           // all albums
 	folders        folders          // all folders
 	pictures       pictures         // all pictures
+	playlists      playlists        // all playlists
 	tracks         tracks           // all tracks
 	newID          func() ObjID     // object ID generator
 	cfg            *config.Cfg      // muserv configuration
@@ -106,6 +107,7 @@ func New(cfg *config.Cfg) (cnt *Content, err error) {
 		albums:         make(albums),
 		folders:        make(folders),
 		pictures:       pictures{data: make(map[uint64]*[]byte)},
+		playlists:      make(playlists),
 		tracks:         make(tracks),
 		newID:          idGenerator(),
 		cfg:            cfg,
@@ -113,7 +115,7 @@ func New(cfg *config.Cfg) (cnt *Content, err error) {
 		extPicturePath: pictureURL.String(),
 		updCounts:      make(map[ObjID]uint32),
 	}
-	cnt.updater = newUpdater(cfg.Cnt.UpdateMode, cnt.tracksByPath, cnt.update)
+	cnt.updater = newUpdater(cfg.Cnt.UpdateMode, cnt.filesByPath, cnt.update)
 
 	// create the root object and its direct children (the hierarchy containers)
 	cnt.makeTree()
@@ -158,7 +160,7 @@ func (me *Content) Browse(id ObjID, mode string, start, wanted uint32) (result s
 	)
 	result = string(didl)
 
-	// set values for the outbput attributes NumberReturned and TotalMatches
+	// set values for the output attributes NumberReturned and TotalMatches
 	if mode == ModeMetadata {
 		returned, total = 1, 1
 	} else {
@@ -204,7 +206,7 @@ func (me *Content) InitialUpdate(ctx context.Context) (err error) {
 	cfg := ctx.Value(config.KeyCfg).(config.Cfg)
 
 	// get changes that must be applied to content
-	tDel, tAdd := fullScan(cfg.Cnt.MusicDir, me.tracksByPath)
+	tDel, tAdd := fullScan(cfg.Cnt.MusicDir, me.filesByPath)
 
 	// update content
 	_, err = me.update(ctx, tDel, tAdd)
@@ -222,7 +224,8 @@ func (me *Content) UpdateNotification() <-chan UpdateNotification {
 	return me.updater.updateNotification()
 }
 
-// Errors returns a receive-only channel for errors from the regular update
+// Errors returns a receive-only channel for errors that occur during the
+// regular update
 func (me *Content) Errors() <-chan error {
 	return me.updater.errors()
 }
@@ -237,7 +240,7 @@ func (me *Content) WriteStatus(w io.Writer) {
 		fmt.Fprint(w, "    Content:\n")
 		fmt.Fprintf(w, "    %6d tracks\n", len(me.tracks))
 		fmt.Fprintf(w, "    %6d albums\n", len(me.albums))
-		fmt.Fprintf(w, "    %6d cover pictures\n\n", len(me.pictures.data))
+		fmt.Fprintf(w, "    %6d playlists\n\n", len(me.playlists))
 		// memory consumption
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
@@ -256,15 +259,21 @@ func (me *Content) WriteStatus(w io.Writer) {
 	}
 }
 
-// tracksByPath returns all tracks whose filepath begins with path
-func (me *Content) tracksByPath(path string) *fileInfos {
-	var tps fileInfos
-	for p, t := range me.tracks {
-		if len(path) == 0 || len(path) <= len(p) && path == p[:len(path)] {
-			tps = append(tps, newTrackInfo(p, t.lastChange))
+// filesByPath returns all files (i.e. tracks and playlists) whose filepath
+// begins with path
+func (me *Content) filesByPath(path string) *fileInfos {
+	var fis fileInfos
+	for p, fi := range me.tracks {
+		if strings.HasPrefix(p, path) {
+			fis = append(fis, newTrackInfo(p, fi.lastChange))
 		}
 	}
-	return &tps
+	for p, fi := range me.playlists {
+		if strings.HasPrefix(p, path) {
+			fis = append(fis, newPlaylistInfo(p, fi.lastChange))
+		}
+	}
+	return &fis
 }
 
 // update updates the muserv content. fiDel and fiAdd contain the files that
@@ -284,7 +293,7 @@ func (me *Content) update(ctx context.Context, fiDel, fiAdd *fileInfos) (count u
 
 	// delete files
 	if err = me.procUpdates(ctx, &count, fiDel,
-		nil,
+		func(wg *sync.WaitGroup, count *uint32, pli playlistInfo) error { return me.delPlaylist(wg, count, pli) },
 		func(wg *sync.WaitGroup, count *uint32, ti trackInfo) error { return me.delTrack(wg, count, ti) },
 	); err != nil {
 		return
@@ -292,22 +301,11 @@ func (me *Content) update(ctx context.Context, fiDel, fiAdd *fileInfos) (count u
 
 	// add files
 	if err = me.procUpdates(ctx, &count, fiAdd,
-		nil,
+		func(wg *sync.WaitGroup, count *uint32, pli playlistInfo) error { return me.addPlaylist(wg, count, pli) },
 		func(wg *sync.WaitGroup, count *uint32, ti trackInfo) error { return me.addTrack(wg, count, ti) },
 	); err != nil {
 		return
 	}
-
-	/*
-		// update tracks
-		me.delTracks(ctx, &count, fiDel.trackInfos())
-		if err = me.addTracks(ctx, &count, fiAdd.trackInfos()); err != nil {
-			return
-		}
-
-		// update playlists
-		// TODO
-	*/
 
 	// remove obsolete objects such as cover pictures that are no longer
 	// required
@@ -326,26 +324,34 @@ func (me *Content) update(ctx context.Context, fiDel, fiAdd *fileInfos) (count u
 func (me *Content) makeTree() {
 	log.Trace("making root object ...")
 
-	root := newCtr(me, 0, "root")
-	me.objects.add(root)
-	me.root = root
+	me.root = newCtr(me, 0, "root")
+	me.objects.add(me.root)
 
 	// create one generic container object as direct children of the root object
 	// - one for each configured hierarchy
 	for i, h := range me.cfg.Cnt.Hiers {
 		hier := newCtr(me, me.newID(), h.Name)
 		hier.sf = []string{fmt.Sprintf("%02d", i)}
-		me.objects.add(hier)
 		me.root.addChild(hier)
 		// set the comparison functions for the sorting of child objects
 		hier.setComparison(h.Levels[0].Comparisons())
+		me.objects.add(hier)
 	}
-	// create folder hierarchy
+	index := len(me.cfg.Cnt.Hiers)
+	// - create playlist hierarchy
+	if me.cfg.Cnt.ShowPlaylists {
+		hier := newCtr(me, me.newID(), me.cfg.Cnt.PlaylistHierName)
+		hier.sf = []string{fmt.Sprintf("%02d", index)}
+		me.root.addChild(hier)
+		me.objects.add(hier)
+		index++
+	}
+	// - create folder hierarchy
 	if me.cfg.Cnt.ShowFolders {
 		hier := newCtr(me, me.newID(), me.cfg.Cnt.FolderHierName)
-		hier.sf = []string{fmt.Sprintf("%02d", len(me.cfg.Cnt.Hiers))}
-		me.objects.add(hier)
+		hier.sf = []string{fmt.Sprintf("%02d", index)}
 		me.root.addChild(hier)
+		me.objects.add(hier)
 	}
 
 	log.Trace("made root object")
@@ -400,8 +406,10 @@ L:
 			}
 			switch fi.kind() {
 			case infoPlaylist:
-				if err = procPlaylistUpdate(&wg, count, fi.(playlistInfo)); err != nil {
-					log.Fatal(err)
+				if me.cfg.Cnt.ShowPlaylists {
+					if err = procPlaylistUpdate(&wg, count, fi.(playlistInfo)); err != nil {
+						log.Fatal(err)
+					}
 				}
 			case infoTrack:
 				if err = procTrackUpdate(&wg, count, fi.(trackInfo)); err != nil {
@@ -422,21 +430,76 @@ L:
 	return
 }
 
+func (me *Content) addPlaylist(wg *sync.WaitGroup, count *uint32, pli playlistInfo) (err error) {
+	// parse playlist file and create a playlist object
+	var pl *playlist
+	if pl, err = newPlaylist(me, wg, count, pli); err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	// if the playlist container has items/children, add it to the playlist
+	// hierarchy node
+	if pl.numChildren() > 0 {
+		me.root.childByIndex(len(me.cfg.Cnt.Hiers)).(container).addChild(pl)
+	}
+
+	return
+}
+
+func (me *Content) delPlaylist(wg *sync.WaitGroup, count *uint32, pli playlistInfo) (err error) {
+	// get corresponding playlist object
+	pl, exists := me.playlists[pli.path()]
+	if !exists {
+		return
+	}
+
+	// count deletion of playlist object
+	*count++
+	// remove from playlists
+	delete(me.playlists, pli.path())
+	// remove from objects
+	delete(me.objects, pl.id())
+	// remove from hierarchies
+	pl.parent().delChild(pl)
+
+	// remove playlist items (i.e. the corresponding track references)
+	for i := 0; i < pl.numChildren(); i++ {
+		tRef := pl.childByIndex(i).(*trackRef)
+		// remove from objects
+		delete(me.objects, tRef.id())
+		// remove from the reference list of the corresponding track
+		tRef.track.delTrackRef(tRef)
+	}
+	pl.delChildren()
+
+	return
+}
+
 func (me *Content) addTrack(wg *sync.WaitGroup, count *uint32, ti trackInfo) (err error) {
-	t, err := me.trackFromPath(wg, count, ti)
+	t, err := newTrack(me, wg, count, ti)
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-	for i := 0; i < me.root.numChildren(); i++ {
-		if me.cfg.Cnt.ShowFolders && i == len(me.cfg.Cnt.Hiers) {
-			me.addTrackToFolderHierarchy(count, me.root.childByIndex(i).(container), t)
-			continue
-		}
+
+	// add t to all configured hierarchies and (if configured) the folder
+	// hierarchy, but don't add it to the playlists hierarchy
+	for i := 0; i < len(me.cfg.Cnt.Hiers); i++ {
 		if err := me.addTrackToHierarchy(count, &me.cfg.Cnt.Hiers[i], me.root.childByIndex(i).(container), t); err != nil {
 			return err
 		}
 	}
+	if me.cfg.Cnt.ShowFolders {
+		// determine the right hierarchy index of the folder hierarchy and add
+		// t to the hierarchy
+		if me.cfg.Cnt.ShowPlaylists {
+			me.addTrackToFolderHierarchy(count, me.root.childByIndex(len(me.cfg.Cnt.Hiers)+1).(container), t)
+		} else {
+			me.addTrackToFolderHierarchy(count, me.root.childByIndex(len(me.cfg.Cnt.Hiers)).(container), t)
+		}
+	}
+
 	return
 }
 
@@ -483,155 +546,6 @@ func (me *Content) delTrack(wg *sync.WaitGroup, count *uint32, ti trackInfo) (er
 		}
 	}
 	return
-}
-
-// albumRefFromAlbum creates a new album reference object from an album
-func (me *Content) albumRefFromAlbum(a *album, sfs []config.SortField) *albumRef {
-	aRef := albumRef{
-		newCtr(me, me.newID(), a.n),
-		a,
-	}
-	aRef.marshalFunc = newAlbumRefMarshalFunc(aRef)
-	aRef.k = a.k
-
-	me.objects.add(&aRef)
-	a.refs = append(a.refs, &aRef)
-
-	// set sort fields of album reference
-	if len(sfs) > 0 {
-		aRef.sf = []string{}
-		for _, sf := range sfs {
-			var s string
-			switch sf {
-			case config.SortLastChange:
-				s = fmt.Sprintf("%020d", a.lastChange)
-			case config.SortTitle:
-				s = a.n
-			case config.SortYear:
-				s = fmt.Sprintf("%d", a.year)
-			}
-			if len(s) > 0 {
-				aRef.sf = append(aRef.sf, s)
-			}
-		}
-	}
-
-	return &aRef
-}
-
-// newAlbum creates a new album object
-func (me *Content) newAlbum(key uint64) (a *album) {
-	a = &album{
-		newCtr(me, me.newID(), ""),
-		0,
-		false,
-		[]string{},
-		[]string{},
-		0,
-		[]*albumRef{},
-	}
-	a.k = key
-	a.marshalFunc = newAlbumMarshalFunc(a, me.cfg.Cnt.MusicDir, me.extMusicPath, me.extPicturePath)
-
-	me.objects.add(a)
-	me.albums.add(a)
-
-	return
-}
-
-// trackFromPath creates a new track object from a track filepath
-func (me *Content) trackFromPath(wg *sync.WaitGroup, count *uint32, tp trackInfo) (t *track, err error) {
-	var (
-		size    int64
-		tags    *tags
-		picture *tag.Picture
-	)
-
-	// get tags and picture
-	if tags, picture, err = tp.metadata(me.cfg.Cnt.Separator); err != nil {
-		err = errors.Wrapf(err, "cannot create track from filepath '%s'", tp.path())
-		log.Fatal(err)
-		return
-	}
-
-	// get size of music track
-	size = tp.size()
-
-	t = &track{
-		newItm(me, me.newID(), tags.title),
-		tags,
-		nonePicID{0, false},
-		tp.mimeType(),
-		size,
-		tp.lastChange(),
-		tp.path(),
-		[]*trackRef{},
-	}
-	t.marshalFunc = newTrackMarshalFunc(t, me.cfg.Cnt.MusicDir, me.extMusicPath, me.extPicturePath)
-
-	me.objects.add(t)
-	me.tracks.add(t)
-
-	// process picture
-	wg.Add(1)
-	go me.pictures.add(wg, picture, &t.picID)
-
-	// count creation of track object
-	*count++
-
-	// add track to corresponding album. Create it if is doesn't exist.
-	a, exists := me.albums[t.albumKey()]
-	if !exists {
-		a = me.newAlbum(t.albumKey())
-		a.n = t.tags.album
-		a.year = t.tags.year
-		a.compilation = t.tags.compilation
-		a.artists = t.tags.albumArtists
-		a.composers = t.tags.composers
-		a.lastChange = t.lastChange
-	}
-	a.addChild(t)
-	// count change of album container
-	*count++
-
-	return
-}
-
-// trackRefFromTrack creates a new track reference object from a track
-func (me *Content) trackRefFromTrack(t *track, sfs []config.SortField) *trackRef {
-	tRef := trackRef{
-		newItm(me, me.newID(), t.tags.title),
-		t,
-	}
-	tRef.marshalFunc = newTrackRefMarshalFunc(tRef)
-
-	me.objects.add(&tRef)
-	t.refs = append(t.refs, &tRef)
-
-	// set sort fields of track reference
-	if len(sfs) > 0 {
-		tRef.sf = []string{}
-		for _, sf := range sfs {
-			var s string
-			switch sf {
-			case config.SortDiscNo:
-				s = fmt.Sprintf("%03d", t.tags.discNo)
-			case config.SortLastChange:
-				s = fmt.Sprintf("%020d", t.lastChange)
-			case config.SortTitle:
-				s = t.tags.title
-			case config.SortTrackNo:
-				s = fmt.Sprintf("%04d", t.tags.trackNo)
-			case config.SortYear:
-				s = fmt.Sprintf("%d", t.tags.year)
-			}
-			if len(s) > 0 {
-				tRef.sf = append(tRef.sf, s)
-			}
-		}
-	}
-
-	return &tRef
 }
 
 // traceUpdate increases the update counter for the container object with the

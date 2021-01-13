@@ -77,6 +77,10 @@ Copyright: 2012 Alex Ogier
            2012 The Go Authors
 License: BSD-3-Clause
 
+Files: vendor/github.com/ushis/m3u/*
+Copyright: Copyright (c) 2013 ushi ushi@honkgong.info
+License: MIT
+
 Files: vendor/golang.org/*
 Copyright: 2009 The Go Authors
 License: LicenseRef-golang

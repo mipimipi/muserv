@@ -173,6 +173,39 @@ func newArtistMarshalFunc(artist container) objMarshalFunc {
 	}
 }
 
+// newContainerMarshalFunc creates a new marshal function for generic container
+// ctr
+func newContainerMarshalFunc(ctr container) objMarshalFunc {
+	return func(mode string, first, last int) []byte {
+		buf := new(bytes.Buffer)
+
+		switch mode {
+		case ModeMetadata:
+			var parentID ObjID
+			if ctr.parent() == nil {
+				parentID = ObjID(-1)
+			} else {
+				parentID = ctr.parent().id()
+			}
+
+			fmt.Fprintf(buf, "<container id=\"%d\" parentID=\"%d\" restricted=\"1\" searchable=\"0\" childCount=\"%d\">", ctr.id(), parentID, ctr.numChildren())
+			fmt.Fprintf(buf, "<dc:title>%s</dc:title>", html.EscapeString(ctr.name()))
+			fmt.Fprintf(buf, "<upnp:class>object.container</upnp:class>")
+			fmt.Fprintf(buf, "</container>")
+		case ModeChildren:
+			for i := first; i < last; i++ {
+				_, err := buf.Write(ctr.childByIndex(i).marshal(ModeMetadata, 0, 0))
+				if err != nil {
+					log.Errorf("error marshalling object %d", ctr.id())
+					return []byte{}
+				}
+			}
+		}
+
+		return buf.Bytes()
+	}
+}
+
 // newFolderMarshalFunc creates a new marshal function for the folder
 // container folder
 func newFolderMarshalFunc(folder container) objMarshalFunc {
@@ -199,7 +232,7 @@ func newFolderMarshalFunc(folder container) objMarshalFunc {
 	}
 }
 
-// newArtistMarshalFunc creates a new marshal function for the genre container
+// newGenreMarshalFunc creates a new marshal function for the genre container
 // genre
 func newGenreMarshalFunc(genre container) objMarshalFunc {
 	return func(mode string, first, last int) []byte {
@@ -226,30 +259,23 @@ func newGenreMarshalFunc(genre container) objMarshalFunc {
 	}
 }
 
-// newContainerMarshalFunc creates a new marshal function for generic container
-// ctr
-func newContainerMarshalFunc(ctr container) objMarshalFunc {
+// newPlaylistMarshalFunc creates a new marshal function for a playlist
+// container playlist
+func newPlaylistMarshalFunc(playlist container) objMarshalFunc {
 	return func(mode string, first, last int) []byte {
 		buf := new(bytes.Buffer)
 
 		switch mode {
 		case ModeMetadata:
-			var parentID ObjID
-			if ctr.parent() == nil {
-				parentID = ObjID(-1)
-			} else {
-				parentID = ctr.parent().id()
-			}
-
-			fmt.Fprintf(buf, "<container id=\"%d\" parentID=\"%d\" restricted=\"1\" searchable=\"0\" childCount=\"%d\">", ctr.id(), parentID, ctr.numChildren())
-			fmt.Fprintf(buf, "<dc:title>%s</dc:title>", html.EscapeString(ctr.name()))
-			fmt.Fprintf(buf, "<upnp:class>object.container</upnp:class>")
+			fmt.Fprintf(buf, "<container id=\"%d\" parentID=\"%d\" restricted=\"1\" searchable=\"0\" childCount=\"%d\">", playlist.id(), playlist.parent().id(), playlist.numChildren())
+			fmt.Fprintf(buf, "<dc:title>%s</dc:title>", html.EscapeString(playlist.name()))
+			fmt.Fprintf(buf, "<upnp:class>object.container.album.playlistContainer</upnp:class>")
 			fmt.Fprintf(buf, "</container>")
 		case ModeChildren:
 			for i := first; i < last; i++ {
-				_, err := buf.Write(ctr.childByIndex(i).marshal(ModeMetadata, 0, 0))
+				_, err := buf.Write(playlist.childByIndex(i).marshal(ModeMetadata, 0, 0))
 				if err != nil {
-					log.Errorf("error marshalling object %d", ctr.id())
+					log.Errorf("error marshalling playlist %d", playlist.id())
 					return []byte{}
 				}
 			}
@@ -310,8 +336,13 @@ func newTrackMarshalFunc(itm item, intMusicPath, extMusicPath, extPicturePath st
 		if t.picID.valid {
 			fmt.Fprintf(buf, "<upnp:albumArtURI>%s</upnp:albumArtURI>", extPicturePath+fmt.Sprint(t.picID.id)+".jpg")
 		}
-		fmt.Fprintf(buf, "<res protocolInfo=\"http-get:*:%s:*\" size=\"%d\">", html.EscapeString(t.mimeType), t.size)
-		fmt.Fprint(buf, html.EscapeString(extMusicPath+t.path[len(intMusicPath)+1:]))
+		if t.isExternal() {
+			fmt.Fprintf(buf, "<res protocolInfo=\"http-get:*:%s:*\">", html.EscapeString(t.mimeType))
+			fmt.Fprint(buf, html.EscapeString(t.path))
+		} else {
+			fmt.Fprintf(buf, "<res protocolInfo=\"http-get:*:%s:*\" size=\"%d\">", html.EscapeString(t.mimeType), t.size)
+			fmt.Fprint(buf, html.EscapeString(extMusicPath+t.path[len(intMusicPath)+1:]))
+		}
 		fmt.Fprint(buf, "</res>")
 
 		return buf.Bytes()

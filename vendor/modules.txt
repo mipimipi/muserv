@@ -30,6 +30,9 @@ github.com/sirupsen/logrus
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
+# github.com/ushis/m3u v0.0.0-20150127162843-94396b784733
+## explicit
+github.com/ushis/m3u
 # gitlab.com/mipimipi/go-utils v0.0.0-20201202054522-1a910c15d40b
 ## explicit
 gitlab.com/mipimipi/go-utils

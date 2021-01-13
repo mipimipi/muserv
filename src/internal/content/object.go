@@ -2,7 +2,6 @@ package content
 
 import (
 	"bytes"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -61,6 +60,7 @@ type container interface {
 	object
 	addChild(object)
 	delChild(object)
+	delChildren()
 	numChildren() int
 	childByIndex(int) object
 	childByKey(uint64) (object, bool)
@@ -117,6 +117,13 @@ func (me *refs) del(obj object) {
 	me.inOrder = []object{}
 }
 
+// delAll removes all child object. The inOrder array is cleared.
+func (me *refs) delAll() {
+	me.byID = make(objects)
+	me.byKey = make(map[uint64]object)
+	me.inOrder = []object{}
+}
+
 // item returns child object number index according to the sort order. If the
 // inOrder array is empty, it is first generated
 func (me *refs) item(index int) object {
@@ -162,19 +169,6 @@ type obj struct {
 	marshalFunc objMarshalFunc // function to marshal object (i.e. create a representation in DIDL)
 }
 
-// newObj creates a new object instance
-func newObj(cnt *Content, id ObjID, name string) *obj {
-	obj := obj{
-		cnt:         cnt,
-		i:           id,
-		k:           utils.HashUint64(name),
-		n:           name,
-		sf:          []string{strings.ToLower(name)},
-		marshalFunc: func(mode string, first int, last int) []byte { return []byte{} },
-	}
-	return &obj
-}
-
 func (me *obj) id() ObjID               { return me.i }
 func (me *obj) key() uint64             { return me.k }
 func (me *obj) name() string            { return me.n }
@@ -202,11 +196,19 @@ type ctr struct {
 // newCtr creates a new instance of ctr
 func newCtr(cnt *Content, id ObjID, name string) *ctr {
 	ctr := ctr{
-		newObj(cnt, id, name),
+		&obj{
+			cnt:         cnt,
+			i:           id,
+			k:           utils.HashUint64(name),
+			n:           name,
+			sf:          []string{strings.ToLower(name)},
+			marshalFunc: func(mode string, first int, last int) []byte { return []byte{} },
+		},
 		0,
 		newRefs([]config.Comparison{func(a, b string) bool { return a < b }}),
 	}
 	ctr.marshalFunc = newContainerMarshalFunc(&ctr)
+
 	return &ctr
 }
 
@@ -228,6 +230,7 @@ func (me *ctr) delChild(obj object) {
 	me.cnt.traceUpdate(me.i)
 }
 
+func (me *ctr) delChildren()                  { me.children.delAll() }
 func (me *ctr) numChildren() int              { return me.children.len() }
 func (me *ctr) childByIndex(index int) object { return me.children.item(index) }
 func (me *ctr) childByKey(key uint64) (object, bool) {
@@ -268,88 +271,21 @@ type itm struct {
 // newItm creates a new instance of itm
 func newItm(cnt *Content, id ObjID, name string) *itm {
 	itm := itm{
-		newObj(cnt, id, name),
+		&obj{
+			cnt:         cnt,
+			i:           id,
+			k:           utils.HashUint64(name),
+			n:           name,
+			sf:          []string{strings.ToLower(name)},
+			marshalFunc: func(mode string, first int, last int) []byte { return []byte{} },
+		},
 	}
+
 	return &itm
 }
 
 func (me *itm) isItem() bool {
 	return true
-}
-
-// album represents an album object. For each music album, exactly one album
-// object exists
-type album struct {
-	*ctr
-	year        int
-	compilation bool
-	artists     []string    // album artists
-	composers   []string    // album composers
-	lastChange  int64       // UNIX time of last change of track file
-	refs        []*albumRef // corresponding track references
-}
-
-// addChild adds a track as child and adjusts lastChange. If necessary, the
-// sorting of corresponding albumRefs is invalidated
-func (me *album) addChild(obj object) {
-	// only tracks can be added as children to album
-	if reflect.TypeOf(obj) != reflect.TypeOf((*track)(nil)) {
-		log.Warnf("tried of add an object of type '%s' to album", reflect.TypeOf(obj).String())
-		return
-	}
-
-	me.children.add(obj)
-	obj.setParent(me)
-	me.cnt.traceUpdate(me.i)
-
-	// if lastChange was adjusted, propagate the change to all albumRefs
-	t := obj.(*track)
-	if t.lastChange > me.lastChange {
-		me.lastChange = t.lastChange
-		for _, aRef := range me.refs {
-			aRef.parent().invalidateOrder()
-		}
-	}
-}
-
-// delChild removes a track (only tracks can be children of albums) and adjusts
-// lastChange. If necessary, the sorting of corresponding albumRefs is
-// invalidated
-func (me *album) delChild(obj object) {
-	me.children.del(obj)
-	obj.setParent(nil)
-	me.cnt.traceUpdate(me.i)
-
-	// adjust lastChange, propagate the change to all albumRefs if necessary
-	t := obj.(*track)
-	if t.lastChange == me.lastChange {
-		me.lastChange = 0
-		for i := 0; i < me.numChildren(); i++ {
-			t := me.childByIndex(i).(*track)
-			if t.lastChange > me.lastChange {
-				me.lastChange = t.lastChange
-			}
-		}
-		for _, aRef := range me.refs {
-			aRef.parent().invalidateOrder()
-		}
-	}
-}
-
-// albums maps album keys to the corresponding album instance. An album key is
-// the uint64 FNV hash of the string concatenation of album attributes name,
-// year and compilation.
-type albums map[uint64]*album
-
-// add adds an album to albums
-func (me albums) add(a *album) { me[a.key()] = a }
-
-// albumRef represents a reference to an album object. One albumRef instance is
-// created for each hierarchy a music album is part of. I.e. for each music
-// album multiple albumRef instances can exist.
-type albumRef struct {
-	*ctr
-	album *album
 }
 
 // folder represents a folder object
@@ -421,52 +357,4 @@ func (me *pictures) add(wg *sync.WaitGroup, pic *tag.Picture, picID *nonePicID) 
 type nonePicID struct {
 	id    uint64
 	valid bool
-}
-
-// track represents a track object. For each music track, exactly one track
-// object exists
-type track struct {
-	*itm
-	tags       *tags       // tags of the track
-	picID      nonePicID   // ID of the cover picture (can be "null")
-	mimeType   string      // mime type of track file
-	size       int64       // size of track file in bytes
-	lastChange int64       // UNIX time of last change of track file
-	path       string      // path of track file
-	refs       []*trackRef // corresponding track references
-}
-
-// albumKey calcutes the key of an album as FNV hash from album artists,album
-// title, year and whether it's a compilation or not
-func (me *track) albumKey() uint64 {
-	return utils.HashUint64("%v%s%d%t", me.tags.albumArtists, me.tags.album, me.tags.year, me.tags.compilation)
-}
-
-// tagsByLevelType returns the tag values that correspond to a certain hierarchy
-// level (lvl). I.e. if the hierarchy level is "genre", the values of tag
-// "genre" are returned
-func (me *track) tagsByLevelType(lvl config.LevelType) []string {
-	switch lvl {
-	case config.LvlGenre:
-		return me.tags.genres
-	case config.LvlAlbumArtist:
-		return me.tags.albumArtists
-	case config.LvlArtist:
-		return me.tags.artists
-	}
-	return []string{}
-}
-
-// tracks maps track paths to the corresponding track instance
-type tracks map[string]*track
-
-// add adds a track object to tracks
-func (me tracks) add(t *track) { me[t.path] = t }
-
-// trackRef represents a reference to a track object. One trackRef instance is
-// created for each hierarchy a music track is part of. I.e. for each music
-// track multiple trackRef instances can exist.
-type trackRef struct {
-	*itm
-	track *track
 }

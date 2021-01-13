@@ -158,12 +158,12 @@ func fullScan(musicDir string, filesByPath func(string) *fileInfos) (*fileInfos,
 	cntData := make(chan *fileInfos)
 	dirData := make(chan *fileInfos)
 
-	// retrieve tracks from content
+	// retrieve files from content
 	go func(ret chan<- *fileInfos) {
-		ret <- filesByPath("")
+		ret <- filesByPath(musicDir)
 	}(cntData)
 
-	// retrieve tracks from music dir
+	// retrieve files from music dir
 	go func(musicDir string, ret chan<- *fileInfos) {
 		ret <- filesFromDir(musicDir)
 	}(musicDir, dirData)

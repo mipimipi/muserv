@@ -12,6 +12,7 @@ require (
 	github.com/rjeczalik/notify v0.9.2
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.1
+	github.com/ushis/m3u v0.0.0-20150127162843-94396b784733
 	gitlab.com/mipimipi/go-utils v0.0.0-20201202054522-1a910c15d40b
 	gitlab.com/mipimipi/yuppie v0.3.3
 	golang.org/x/image v0.0.0-20201208152932-35266b937fa6 // indirect

@@ -16,23 +16,23 @@ import (
 // notifier implements the updater interface to enable content updates based on
 // file system changes detected by inotify
 type notifier struct {
-	changes      []notify.EventInfo
-	mutChanges   sync.Mutex
-	errs         chan error
-	updNotif     chan UpdateNotification
-	upd          chan struct{}
-	tracksByPath func(string) *fileInfos
-	update       func(context.Context, *fileInfos, *fileInfos) (uint32, error)
+	changes     []notify.EventInfo
+	mutChanges  sync.Mutex
+	errs        chan error
+	updNotif    chan UpdateNotification
+	upd         chan struct{}
+	filesByPath func(string) *fileInfos
+	update      func(context.Context, *fileInfos, *fileInfos) (uint32, error)
 }
 
 // newNotifier creates a new instance of notifier
-func newNotifier(tracksByPath func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) *notifier {
+func newNotifier(filesByPath func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) *notifier {
 	nf := new(notifier)
 
 	nf.errs = make(chan error)
 	nf.updNotif = make(chan UpdateNotification)
 	nf.upd = make(chan struct{})
-	nf.tracksByPath = tracksByPath
+	nf.filesByPath = filesByPath
 	nf.update = update
 
 	return nf
@@ -176,14 +176,19 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 			if isDir {
 				fiDir = append(fiDir, *filesFromDir(chg.Path())...)
 			} else {
-				if !isDir && config.IsValidTrackFile(chg.Path()) {
-					fiDir = append(fiDir, newTrackInfo(chg.Path(), 0))
+				if !isDir {
+					if config.IsValidTrackFile(chg.Path()) {
+						fiDir = append(fiDir, newTrackInfo(chg.Path(), 0))
+					}
+					if config.IsValidPlaylistFile(chg.Path()) {
+						fiDir = append(fiDir, newPlaylistInfo(chg.Path(), 0))
+					}
 				}
 			}
 		}
 
 		// collect all changed tracks that are contained in the content
-		fiCnt = append(fiCnt, *me.tracksByPath(chg.Path())...)
+		fiCnt = append(fiCnt, *me.filesByPath(chg.Path())...)
 	}
 
 	// determine files to be deleted from or added to the content. fiCnt and

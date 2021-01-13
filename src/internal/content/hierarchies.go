@@ -25,10 +25,7 @@ func (me *Content) addTrackToHierarchy(count *uint32, hier *config.Hierarchy, ct
 // during this activity
 func (me *Content) addTrackToHierarchyLevel(count *uint32, hier *config.Hierarchy, index int, ctr container, t *track) (err error) {
 	if hier.Levels[index].Type == config.LvlAlbum || hier.Levels[index].Type == config.LvlTrack {
-		if err = me.addTrackToSubHierarchy(count, hier, index, ctr, t); err != nil {
-			return
-		}
-		return
+		return me.addTrackToSubHierarchy(count, hier, index, ctr, t)
 	}
 
 	tags := t.tagsByLevelType(hier.Levels[index].Type)
@@ -41,7 +38,6 @@ func (me *Content) addTrackToHierarchyLevel(count *uint32, hier *config.Hierarch
 		} else {
 			ctrNew := newCtr(me, me.newID(), tags[i])
 			ctrNew.marshalFunc = marshalFuncMux(hier.Levels[index].Type, ctrNew)
-			me.objects.add(ctrNew)
 			ctr.addChild(ctrNew)
 			// count creation of new object
 			*count++
@@ -49,6 +45,8 @@ func (me *Content) addTrackToHierarchyLevel(count *uint32, hier *config.Hierarch
 			// we know that index is not the last level of the hierarchy. Thus
 			// level index+1 exists as well.
 			ctrNew.setComparison(hier.Levels[index+1].Comparisons())
+
+			me.objects.add(ctrNew)
 
 			ctrNext = ctrNew
 		}
@@ -69,7 +67,7 @@ func (me *Content) addTrackToHierarchyLevel(count *uint32, hier *config.Hierarch
 // that happened during this activity
 func (me *Content) addTrackToSubHierarchy(count *uint32, hier *config.Hierarchy, index int, ctr container, t *track) (err error) {
 	// create track reference
-	tRef := me.trackRefFromTrack(t, hier.Levels[len(hier.Levels)-1].SortFields())
+	tRef := t.newTrackRef(hier.Levels[len(hier.Levels)-1].SortFields())
 	// count creation of trackRef object
 	*count++
 
@@ -96,7 +94,7 @@ func (me *Content) addTrackToSubHierarchy(count *uint32, hier *config.Hierarchy,
 			log.Fatal(err)
 			return
 		}
-		aRef = me.albumRefFromAlbum(a, hier.Levels[index].SortFields())
+		aRef = a.newAlbumRef(hier.Levels[index].SortFields())
 		// set comparison functions for sosrting of child objects
 		aRef.setComparison(hier.Levels[index+1].Comparisons())
 		// add album reference to object tree
@@ -119,7 +117,7 @@ func (me *Content) addTrackToSubHierarchy(count *uint32, hier *config.Hierarchy,
 func (me *Content) addTrackToFolderHierarchy(count *uint32, ctr container, t *track) {
 	// create track reference. In the folder hierarchy, tracks are ordered by
 	// file name
-	tRef := me.trackRefFromTrack(t, []config.SortField{})
+	tRef := t.newTrackRef([]config.SortField{})
 	tRef.sf = []string{filepath.Base(t.path)}
 	// count creation of trackRef object
 	*count++
@@ -140,7 +138,7 @@ func (me *Content) addTrackToFolderHierarchy(count *uint32, ctr container, t *tr
 			fNew.marshalFunc = newFolderMarshalFunc(fNew)
 			f = fNew
 			me.folders.add(path, f)
-			me.objects.add(f)
+			me.objects.add(fNew)
 		}
 		f.addChild(child)
 		// count change of folder object

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	l "github.com/sirupsen/logrus"
@@ -381,7 +382,14 @@ func (me *Server) setHTTPHandler() {
 				return
 			}
 
-			http.ServeFile(w, r, filepath.Join(me.cfg.Cnt.MusicDir, path[len(content.MusicFolder):]))
+			if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+				// if path is an external URI, the file is under that path, ...
+				http.ServeFile(w, r, path)
+			} else {
+				// ... otherwise: serve the corresponding file from the music
+				// directory
+				http.ServeFile(w, r, filepath.Join(me.cfg.Cnt.MusicDir, path[len(content.MusicFolder):]))
+			}
 		},
 	)
 

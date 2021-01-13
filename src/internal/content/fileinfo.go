@@ -67,7 +67,6 @@ func newBaseInfo(path string, lastChange int64) (bi baseInfo) {
 		}
 		return info
 	}
-
 	bi.lChg = func() int64 {
 		if lastChange != 0 {
 			return lastChange
@@ -81,8 +80,8 @@ func newBaseInfo(path string, lastChange int64) (bi baseInfo) {
 
 func (me baseInfo) kind() infoKind    { return infoNone }
 func (me baseInfo) path() string      { return me.p }
-func (me baseInfo) lastChange() int64 { return me.lChg() }
 func (me baseInfo) mimeType() string  { return mime.TypeByExtension(path.Ext(me.path())) }
+func (me baseInfo) lastChange() int64 { return me.lChg() }
 func (me baseInfo) size() int64       { return me.info().Size() }
 
 type playlistInfo struct {
@@ -90,8 +89,8 @@ type playlistInfo struct {
 }
 
 // newPlaylistInfo creates an instance of playlistInfo
-func newPlaylistInfo(path string, lastChange int64) trackInfo {
-	return trackInfo{newBaseInfo(path, lastChange)}
+func newPlaylistInfo(path string, lastChange int64) playlistInfo {
+	return playlistInfo{newBaseInfo(path, lastChange)}
 }
 
 func (me playlistInfo) kind() infoKind { return infoPlaylist }
@@ -109,7 +108,6 @@ func (me trackInfo) kind() infoKind { return infoTrack }
 
 // metadata reads the ID3 tags and the picture for a track
 func (me trackInfo) metadata(sep string) (tgs *tags, pic *tag.Picture, err error) {
-
 	f, err := os.Open(me.path())
 	if err != nil {
 		err = errors.Wrapf(err, "cannot retrieve meta data for '%s'", me.path())

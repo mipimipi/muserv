@@ -41,8 +41,10 @@
               ]
           }
       ],
+      "show_playlists": true,
+      "playlist_hierarchy_name": "Playlists",
       "show_folders": true,
-      "folder_hierarchy_name": "Ordner"
+      "folder_hierarchy_name": "Folders"
     },
     "upnp": {
       "interfaces": [],

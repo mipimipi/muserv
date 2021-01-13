@@ -68,6 +68,14 @@ Below we describe all configuration settings.
 
     Note that within an album, tracks are sorted first by disc number and then by track number. With this configuration, albums with multiple discs can be handled.          
 
+  - `show_playlists`
+
+    Whether the playlist hierarchy shall be shown or not. If it shall be shown, it's listed directy after the other configured hierarchies but before the folder hierarchy (if that is configured to be shown).
+
+  - `playlist_hierarchy_name`
+
+    The name of the playlist hierarchy that is shown by UPnP clients.
+
   - `show_folders`
 
     Whether the folder hierarchy shall be shown or not. If it shall be shown, it's the last hierarchy sequence of hierarchies that UPnP clients display.
