@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.3.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.0) (2021-01-16)
+
+* Added
+
+  Read support of M3U playlists.
+
+  Support of multiple music directories.
+
+
 ## [v0.2.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.2.1) (2021-01-01)
 
 * Added
