@@ -56,7 +56,7 @@ func newTrack(cnt *Content, wg *sync.WaitGroup, count *uint32, ti trackInfo) (t 
 		ti.path(),
 		make(map[ObjID]*trackRef),
 	}
-	t.marshalFunc = newTrackMarshalFunc(t, cnt.cfg.Cnt.MusicDirs, cnt.extMusicPath, cnt.extPicturePath)
+	t.marshalFunc = newTrackMarshalFunc(t, cnt.extMusicPath, cnt.extPicturePath)
 
 	cnt.tracks.add(t)
 	cnt.objects.add(t)
@@ -101,7 +101,7 @@ func newExtTrack(cnt *Content, count *uint32, url, title string) (t *track, err 
 		url,
 		make(map[ObjID]*trackRef),
 	}
-	t.marshalFunc = newTrackMarshalFunc(t, cnt.cfg.Cnt.MusicDirs, cnt.extMusicPath, cnt.extPicturePath)
+	t.marshalFunc = newTrackMarshalFunc(t, cnt.extMusicPath, cnt.extPicturePath)
 
 	cnt.tracks.add(t)
 	cnt.objects.add(t)

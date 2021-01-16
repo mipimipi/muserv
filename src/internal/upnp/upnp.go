@@ -388,13 +388,21 @@ func (me *Server) setHTTPHandler() {
 			} else {
 				// ... otherwise: serve the corresponding file from the music
 				// directory
-				path = path[len(content.MusicFolder):]
-				dir := me.cfg.Cnt.MusicDir(path)
-				if len(dir) == 0 {
-					log.Errorf("requested file '%s' not found in any of the music directories", path)
+
+				// determine path of music track
+				id, err := strconv.ParseUint(path[len(content.MusicFolder):], 10, 64)
+				if err != nil {
+					err = errors.Wrapf(err, "requested file '%s' not found in any of the music directories", path)
+					log.Error(err)
 					return
 				}
-				http.ServeFile(w, r, filepath.Join(dir, path))
+				trackpath, err := me.cnt.Trackpath(id)
+				if err != nil {
+					err = errors.Wrapf(err, "track with path '%s' could not be found", path)
+					log.Error(err)
+				}
+
+				http.ServeFile(w, r, trackpath)
 			}
 		},
 	)

@@ -182,16 +182,10 @@ func (me *Content) ContainerUpdateIDs() (updates string) {
 	return
 }
 
-// Picture returns the picture with the given ID. If it doesn't exist, nil is
-// returned
-func (me *Content) Picture(id uint64) *[]byte {
-	return me.pictures.get(id)
-}
-
-// ResetCtrUpdCounts resets the ContainerUpdateIDValues for all container
-// objects
-func (me *Content) ResetCtrUpdCounts() {
-	me.root.resetUpdCount()
+// Errors returns a receive-only channel for errors that occur during the
+// regular update
+func (me *Content) Errors() <-chan error {
+	return me.updater.errors()
 }
 
 // InitialUpdate executes a one-time content update after muserv has been started
@@ -213,21 +207,41 @@ func (me *Content) InitialUpdate(ctx context.Context) (err error) {
 	return
 }
 
+// Picture returns the picture with the given ID. If it doesn't exist, nil is
+// returned
+func (me *Content) Picture(id uint64) *[]byte {
+	return me.pictures.get(id)
+}
+
+// ResetCtrUpdCounts resets the ContainerUpdateIDValues for all container
+// objects
+func (me *Content) ResetCtrUpdCounts() {
+	me.root.resetUpdCount()
+}
+
 // Run starts the regular content updates
 func (me *Content) Run(ctx context.Context, wg *sync.WaitGroup) {
 	me.updater.run(ctx, wg)
 	me.status.overall = statusRunning
 }
 
+// Trackpath return the path of the music track with the object id id. An error
+// is returned if the track cannot be found
+func (me *Content) Trackpath(id uint64) (path string, err error) {
+	obj, exists := me.objects[ObjID(id)]
+	if !exists {
+		err = fmt.Errorf("an object with id %d could not be found", id)
+		return
+	}
+
+	path = obj.(*track).path
+
+	return
+}
+
 // UpdateNotification returns a receive-only channel to notify about updates
 func (me *Content) UpdateNotification() <-chan UpdateNotification {
 	return me.updater.updateNotification()
-}
-
-// Errors returns a receive-only channel for errors that occur during the
-// regular update
-func (me *Content) Errors() <-chan error {
-	return me.updater.errors()
 }
 
 // WriteStatus writes the content status to w

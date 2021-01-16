@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html"
 
-	"gitlab.com/mipimipi/go-utils/file"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -51,11 +50,9 @@ func marshalFuncMux(lvl config.LevelType, ctr container) objMarshalFunc {
 }
 
 // newAlbumMarshalFunc creates a new marshal function for an album. ctr is the
-// album container object, intMusicPath is the file system path of the music
-// library, extMusicPath is the external music URL (i.e. the virtual path where
-// music tracks can be requestd via HTTP) and extPicturePath is the external
-// picture URL (i.e. the virtual path where pictures can be requestd via HTTP).
-func newAlbumMarshalFunc(ctr container, intMusicPaths []string, extMusicPath, extPicturePath string) objMarshalFunc {
+// album container object and extPicturePath is the external picture URL (i.e.
+// the virtual path where pictures can be requestd via HTTP).
+func newAlbumMarshalFunc(ctr container, extPicturePath string) objMarshalFunc {
 	return func(mode string, first, last int) []byte {
 		a := ctr.(*album)
 		buf := new(bytes.Buffer)
@@ -287,11 +284,11 @@ func newPlaylistMarshalFunc(playlist container) objMarshalFunc {
 }
 
 // newTrackMarshalFunc creates a new marshal function for a track. itm is the
-// track item object, intMusicPath is the file system path of the music
-// library, extMusicPath is the external music URL (i.e. the virtual path where
-// music tracks can be requestd via HTTP) and extPicturePath is the external
-// picture URL (i.e. the virtual path where pictures can be requestd via HTTP).
-func newTrackMarshalFunc(itm item, intMusicPaths []string, extMusicPath, extPicturePath string) objMarshalFunc {
+// track item object, extMusicPath is the external music URL (i.e. the virtual
+// path where music tracks can be requestd via HTTP) and extPicturePath is the
+// external picture URL (i.e. the virtual path where pictures can be requestd
+// via HTTP).
+func newTrackMarshalFunc(itm item, extMusicPath, extPicturePath string) objMarshalFunc {
 	t := itm.(*track)
 	return func(mode string, first, last int) []byte {
 		buf := new(bytes.Buffer)
@@ -342,12 +339,7 @@ func newTrackMarshalFunc(itm item, intMusicPaths []string, extMusicPath, extPict
 			fmt.Fprint(buf, html.EscapeString(t.path))
 		} else {
 			fmt.Fprintf(buf, "<res protocolInfo=\"http-get:*:%s:*\" size=\"%d\">", html.EscapeString(t.mimeType), t.size)
-			for _, path := range intMusicPaths {
-				if isSub, _ := file.IsSub(path, t.path); isSub {
-					fmt.Fprint(buf, html.EscapeString(extMusicPath+t.path[len(path)+1:]))
-					break
-				}
-			}
+			fmt.Fprint(buf, html.EscapeString(extMusicPath+fmt.Sprintf("%d", t.id())))
 		}
 		fmt.Fprint(buf, "</res>")
 
