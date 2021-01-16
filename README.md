@@ -72,7 +72,7 @@ Copy the default configuration by executing
 
 as `root`.
 
-The only required change is to set the music directory. Therefore, edit `/etc/muserv/config.json` as `root` and set `music_dir` to the absolute path of your music directory. [Here](doc/configuration.md) you find a more detailed description of the configuration options.
+The only required change is to set the music directory/ies. Therefore, edit `/etc/muserv/config.json` as `root` and set the absolute paths of your music directories in `music_dirs`. [Here](doc/configuration.md) you find a more detailed description of the configuration options.
 
 ## Run muserv
 

@@ -6,12 +6,12 @@ import (
 	"io"
 	"net/url"
 	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 	l "github.com/sirupsen/logrus"
 	utils "gitlab.com/mipimipi/go-utils"
+	"gitlab.com/mipimipi/go-utils/file"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -115,7 +115,7 @@ func New(cfg *config.Cfg) (cnt *Content, err error) {
 		extPicturePath: pictureURL.String(),
 		updCounts:      make(map[ObjID]uint32),
 	}
-	cnt.updater = newUpdater(cfg.Cnt.UpdateMode, cnt.filesByPath, cnt.update)
+	cnt.updater = newUpdater(cfg.Cnt.UpdateMode, cnt.filesByPaths, cnt.update)
 
 	// create the root object and its direct children (the hierarchy containers)
 	cnt.makeTree()
@@ -206,7 +206,7 @@ func (me *Content) InitialUpdate(ctx context.Context) (err error) {
 	cfg := ctx.Value(config.KeyCfg).(config.Cfg)
 
 	// get changes that must be applied to content
-	tDel, tAdd := fullScan(cfg.Cnt.MusicDir, me.filesByPath)
+	tDel, tAdd := fullScan(cfg.Cnt.MusicDirs, me.filesByPaths)
 
 	// update content
 	_, err = me.update(ctx, tDel, tAdd)
@@ -259,18 +259,26 @@ func (me *Content) WriteStatus(w io.Writer) {
 	}
 }
 
-// filesByPath returns all files (i.e. tracks and playlists) whose filepath
-// begins with path
-func (me *Content) filesByPath(path string) *fileInfos {
+// filesByPaths returns all files (i.e. tracks and playlists) whose filepath
+// begins with a path from paths
+func (me *Content) filesByPaths(paths []string) *fileInfos {
 	var fis fileInfos
 	for p, fi := range me.tracks {
-		if strings.HasPrefix(p, path) {
-			fis = append(fis, newTrackInfo(p, fi.lastChange))
+	L0:
+		for _, path := range paths {
+			if isSub, _ := file.IsSub(p, path); isSub {
+				fis = append(fis, newTrackInfo(p, fi.lastChange))
+				break L0
+			}
 		}
 	}
 	for p, fi := range me.playlists {
-		if strings.HasPrefix(p, path) {
-			fis = append(fis, newPlaylistInfo(p, fi.lastChange))
+	L1:
+		for _, path := range paths {
+			if isSub, _ := file.IsSub(path, p); isSub {
+				fis = append(fis, newPlaylistInfo(p, fi.lastChange))
+				break L1
+			}
 		}
 	}
 	return &fis

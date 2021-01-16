@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"os/user"
+	"path"
 	p "path"
 	"time"
 
@@ -132,7 +133,7 @@ type Cfg struct {
 	LogLevel string `json:"log_level"`
 }
 type cnt struct {
-	MusicDir         string        `json:"music_dir"`
+	MusicDirs        []string      `json:"music_dirs"`
 	Separator        string        `json:"separator"`
 	UpdateMode       string        `json:"update_mode"`
 	UpdateInterval   time.Duration `json:"update_interval"`
@@ -280,12 +281,58 @@ func (me *Cfg) Validate() (err error) {
 	return
 }
 
+// MusicDir returns the music directory that path belongs to. If path does not
+// belong to any of the music directories, an empty string is returned.
+// If path is absolute, then the path of the music directory is returned that
+// path is a sub path of. An empty string is returned if path is sub path of
+// none of them.
+// If path is relative, then the path of first music directory is returned
+// where the concatenation of the music directory and path exists in the file
+// system. An empty string is returned if that path doesn't exist for any of
+// the music directories.
+func (me *cnt) MusicDir(path string) string {
+	if len(path) == 0 {
+		return ""
+	}
+
+	for _, dir := range me.MusicDirs {
+		if p.IsAbs(path) {
+			if isSub, _ := file.IsSub(dir, path); isSub {
+				return dir
+			}
+			continue
+		}
+		if exists, _ := file.Exists(p.Join(dir, path)); exists {
+			return dir
+		}
+	}
+
+	return ""
+}
+
 // validate checks if the content part of the configuration is complete and
 // correct. If it's not, an error is returned
 func (me *cnt) validate() (err error) {
-	if err = validateDir(me.MusicDir, "music_dir"); err != nil {
-		return
+	for _, dir := range me.MusicDirs {
+		if err = validateDir(dir, "music_dir"); err != nil {
+			return
+		}
 	}
+
+	// music dirs must not be sub dirs of each other
+	for i := 0; i < len(me.MusicDirs); i++ {
+		for j := i + 1; j < len(me.MusicDirs); j++ {
+			if isSub, _ := file.IsSub(me.MusicDirs[i], me.MusicDirs[j]); isSub {
+				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[j], me.MusicDirs[i])
+				return
+			}
+			if isSub, _ := file.IsSub(me.MusicDirs[j], me.MusicDirs[i]); isSub {
+				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[i], me.MusicDirs[i])
+				return
+			}
+		}
+	}
+
 	if me.UpdateMode != "notify" && me.UpdateMode != "scan" {
 		err = fmt.Errorf("unknown update_mode '%s'", me.UpdateMode)
 		return
@@ -402,6 +449,10 @@ func validateSort(s string) (err error) {
 func validateDir(dir, name string) (err error) {
 	if dir == "" {
 		err = fmt.Errorf("no %s maintained", name)
+		return
+	}
+	if !path.IsAbs(dir) {
+		err = fmt.Errorf("%s '%s' is not absolute", name, dir)
 		return
 	}
 	var exists bool

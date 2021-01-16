@@ -31,7 +31,7 @@ func newAlbum(cnt *Content, key uint64) (a *album) {
 		[]*albumRef{},
 	}
 	a.k = key
-	a.marshalFunc = newAlbumMarshalFunc(a, cnt.cfg.Cnt.MusicDir, cnt.extMusicPath, cnt.extPicturePath)
+	a.marshalFunc = newAlbumMarshalFunc(a, cnt.cfg.Cnt.MusicDirs, cnt.extMusicPath, cnt.extPicturePath)
 
 	cnt.objects.add(a)
 	cnt.albums.add(a)

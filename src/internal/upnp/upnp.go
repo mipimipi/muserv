@@ -388,7 +388,13 @@ func (me *Server) setHTTPHandler() {
 			} else {
 				// ... otherwise: serve the corresponding file from the music
 				// directory
-				http.ServeFile(w, r, filepath.Join(me.cfg.Cnt.MusicDir, path[len(content.MusicFolder):]))
+				path = path[len(content.MusicFolder):]
+				dir := me.cfg.Cnt.MusicDir(path)
+				if len(dir) == 0 {
+					log.Errorf("requested file '%s' not found in any of the music directories", path)
+					return
+				}
+				http.ServeFile(w, r, filepath.Join(dir, path))
 			}
 		},
 	)

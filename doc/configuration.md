@@ -1,6 +1,10 @@
 # Configuration settings
 
-muserv provides default configuration settings. The only additional configuration that must be made for the music directory. 
+muserv provides default configuration settings. The only additional configuration that must be made are the music directories.
+
+The completeness and consistency of the configuration can be checked via the command
+
+    muserv test
 
 Below we describe all configuration settings.
 
@@ -8,9 +12,9 @@ Below we describe all configuration settings.
 
   Content-related parameters
 
-  - `music_dir`
+  - `music_dirs`
 
-    Absolute path of music directory. The muserv system user must have read access. There is no default.
+    List of music directories as absolute paths. The muserv system user must have read access. There is no default.
 
   - `separator`
 

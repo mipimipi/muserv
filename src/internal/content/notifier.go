@@ -16,23 +16,23 @@ import (
 // notifier implements the updater interface to enable content updates based on
 // file system changes detected by inotify
 type notifier struct {
-	changes     []notify.EventInfo
-	mutChanges  sync.Mutex
-	errs        chan error
-	updNotif    chan UpdateNotification
-	upd         chan struct{}
-	filesByPath func(string) *fileInfos
-	update      func(context.Context, *fileInfos, *fileInfos) (uint32, error)
+	changes      []notify.EventInfo
+	mutChanges   sync.Mutex
+	errs         chan error
+	updNotif     chan UpdateNotification
+	upd          chan struct{}
+	filesByPaths func([]string) *fileInfos
+	update       func(context.Context, *fileInfos, *fileInfos) (uint32, error)
 }
 
 // newNotifier creates a new instance of notifier
-func newNotifier(filesByPath func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) *notifier {
+func newNotifier(filesByPaths func([]string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) *notifier {
 	nf := new(notifier)
 
 	nf.errs = make(chan error)
 	nf.updNotif = make(chan UpdateNotification)
 	nf.upd = make(chan struct{})
-	nf.filesByPath = filesByPath
+	nf.filesByPaths = filesByPaths
 	nf.update = update
 
 	return nf
@@ -51,9 +51,11 @@ func (me *notifier) run(ctx context.Context, wg *sync.WaitGroup) {
 	// add watcher for inotify events for music dir. Changes can be received via
 	// channel chgs
 	chgs := make(chan notify.EventInfo, 1)
-	if err := notify.Watch(filepath.Join(cfg.Cnt.MusicDir, "..."), chgs, notify.All); err != nil {
-		err = errors.Wrapf(err, "cannot add inotify watcher for '%s'", cfg.Cnt.MusicDir)
-		me.errs <- err
+	for _, dir := range cfg.Cnt.MusicDirs {
+		if err := notify.Watch(filepath.Join(dir, "..."), chgs, notify.All); err != nil {
+			err = errors.Wrapf(err, "cannot add inotify watcher for '%s'", dir)
+			me.errs <- err
+		}
 	}
 
 	// main control loop
@@ -174,7 +176,7 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 				continue
 			}
 			if isDir {
-				fiDir = append(fiDir, *filesFromDir(chg.Path())...)
+				fiDir = append(fiDir, *filesFromDirs([]string{chg.Path()})...)
 			} else {
 				if !isDir {
 					if config.IsValidTrackFile(chg.Path()) {
@@ -188,7 +190,7 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 		}
 
 		// collect all changed tracks that are contained in the content
-		fiCnt = append(fiCnt, *me.filesByPath(chg.Path())...)
+		fiCnt = append(fiCnt, *me.filesByPaths([]string{chg.Path()})...)
 	}
 
 	// determine files to be deleted from or added to the content. fiCnt and

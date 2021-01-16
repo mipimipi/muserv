@@ -34,9 +34,6 @@ func (me *Server) browse(reqArgs map[string]yuppie.StateVar) (respArgs yuppie.SO
 		}
 		return
 	}
-	for name, value := range reqArgs {
-		log.Tracef("arg %s=%s", name, value.String())
-	}
 	objID, exists := reqArgs[browseReqArgObjID]
 	var (
 		err error

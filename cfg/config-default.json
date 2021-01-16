@@ -1,6 +1,6 @@
 {
     "content": {
-      "music_dir": "",
+      "music_dirs": [ "" ],
       "separator": ";",
       "cache_dir": "/var/cache/muserv",
       "update_mode": "notify",

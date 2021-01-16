@@ -97,7 +97,7 @@ func newPlaylist(cnt *Content, wg *sync.WaitGroup, count *uint32, pli playlistIn
 
 		} else {
 			path = p.Clean(path)
-			if !strings.HasPrefix(path, cnt.cfg.Cnt.MusicDir) {
+			if dir := cnt.cfg.Cnt.MusicDir(path); dir == "" {
 				log.Errorf("playlist item '%s' is not in music directory: ignore it", path)
 				continue
 			}

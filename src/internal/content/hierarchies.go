@@ -1,10 +1,11 @@
 package content
 
 import (
-	"path/filepath"
+	p "path"
 
 	"github.com/pkg/errors"
 	utils "gitlab.com/mipimipi/go-utils"
+	"gitlab.com/mipimipi/go-utils/file"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -118,34 +119,52 @@ func (me *Content) addTrackToFolderHierarchy(count *uint32, ctr container, t *tr
 	// create track reference. In the folder hierarchy, tracks are ordered by
 	// file name
 	tRef := t.newTrackRef([]config.SortField{})
-	tRef.sf = []string{filepath.Base(t.path)}
+	tRef.sf = []string{p.Base(t.path)}
 	// count creation of trackRef object
 	*count++
 
-	var (
-		child  object = tRef
-		exists bool
-	)
-	for path := filepath.Dir(tRef.track.path); path != me.cfg.Cnt.MusicDir; path = filepath.Dir(path) {
-		if len(path) == 0 {
-			continue
-		}
+	musicDir := me.cfg.Cnt.MusicDir(t.path)
 
+	// if there are more than one music directory, another level of container
+	// nodes is needed. Each node represents one directory
+	if len(me.cfg.Cnt.MusicDirs) > 1 {
+		var ctrDir container
+		obj, exists := ctr.childByKey(utils.HashUint64("%s", musicDir))
+		if exists {
+			ctrDir = obj.(container)
+		} else {
+			ctrDir = newCtr(me, me.newID(), musicDir)
+			ctr.addChild(ctrDir)
+			me.objects.add(ctr)
+			// count creation of new object
+			*count++
+
+			ctr.addChild(ctrDir)
+		}
+		ctr = ctrDir
+	}
+
+	// create nodes for all folders and the music track itself
+	dirs := file.SplitPath(t.path[len(musicDir):])
+	for i, path := 0, musicDir; i < len(dirs); i++ {
+		if i == len(dirs)-1 {
+			ctr.addChild(tRef)
+			// count change of ctr
+			*count++
+			break
+		}
+		path = p.Join(path, dirs[i])
 		// check if folder with path path already exists in hierarchy
 		f, exists := me.folders[path]
 		if !exists {
-			fNew := folder{newCtr(me, me.newID(), filepath.Base(path)), path}
-			fNew.marshalFunc = newFolderMarshalFunc(fNew)
-			f = fNew
+			f = folder{newCtr(me, me.newID(), p.Base(path)), path}
+			f.marshalFunc = newFolderMarshalFunc(f)
 			me.folders.add(path, f)
-			me.objects.add(fNew)
+			me.objects.add(f)
 		}
-		f.addChild(child)
-		// count change of folder object
+		ctr.addChild(f)
+		// count change of ctr
 		*count++
-		child = f
-	}
-	if !exists {
-		ctr.addChild(child)
+		ctr = f
 	}
 }

@@ -315,6 +315,22 @@ func IsEmpty(path string) (bool, error) {
 	return false, nil
 }
 
+// IsSub returns true if sub is a sub path of path,otherwise false is returned.
+// The function is taken from
+// https://stackoverflow.com/questions/28024731/check-if-given-path-is-a-subdirectory-of-another-in-golang
+func IsSub(path, sub string) (bool, error) {
+	up := ".." + string(os.PathSeparator)
+
+	rel, err := filepath.Rel(path, sub)
+	if err != nil {
+		return false, err
+	}
+	if !strings.HasPrefix(rel, up) && rel != ".." {
+		return true, nil
+	}
+	return false, nil
+}
+
 // MD5 calculates the md5 hash of a file
 func MD5(path string) ([]byte, error) {
 	f, err := os.Open(path)

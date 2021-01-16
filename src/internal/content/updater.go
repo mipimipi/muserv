@@ -40,31 +40,31 @@ const (
 )
 
 // updaters maps the update mode to its implementations
-var updaters = map[string](func(func(string) *fileInfos, func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater){
-	updModeNotify: func(tracksByPath func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater {
-		return newNotifier(tracksByPath, update)
+var updaters = map[string](func(func([]string) *fileInfos, func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater){
+	updModeNotify: func(filesByPaths func([]string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater {
+		return newNotifier(filesByPaths, update)
 	},
-	updModeScan: func(tracksByPath func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater {
-		return newScanner(tracksByPath, update)
+	updModeScan: func(filesByPaths func([]string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater {
+		return newScanner(filesByPaths, update)
 	},
 }
 
 // newUpdater creates an updater instance based on cfg.UpdateMode
-func newUpdater(updMode string, tracksByPath func(string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater {
+func newUpdater(updMode string, filesByPaths func([]string) *fileInfos, update func(context.Context, *fileInfos, *fileInfos) (uint32, error)) updater {
 	upd, ok := updaters[updMode]
 	if ok {
-		return upd(tracksByPath, update)
+		return upd(filesByPaths, update)
 	}
 	return nil
 }
 
-// filesFromDir recursively determines all valid files of the folder tree
-// below dir. Valid in this context means that the files have a mime type that
-// is supported by muserv
-func filesFromDir(dir string) *fileInfos {
+// filesFromDirs recursively determines all valid files of the folder tree
+// below each directory in dirs. Valid in this context means that the files
+// have a mime type that is supported by muserv
+func filesFromDirs(dirs []string) *fileInfos {
 	var fis fileInfos
 
-	log.Tracef("reading tracks from '%s' ...", dir)
+	log.Tracef("reading tracks from '%v' ...", dirs)
 
 	var fileInfos = make(chan fileInfo)
 	defer close(fileInfos)
@@ -93,16 +93,20 @@ func filesFromDir(dir string) *fileInfos {
 	}()
 
 	// determine files according to filter
-	root, err := f.Stat(dir)
-	if err != nil {
-		log.Error(err)
-		return &fis
+	var roots []f.Info
+	for _, dir := range dirs {
+		root, err := f.Stat(dir)
+		if err != nil {
+			log.Error(err)
+			return &fis
+		}
+		roots = append(roots, root)
 	}
-	_ = f.Find([]f.Info{root}, filter, 1)
+	_ = f.Find(roots, filter, 1)
 
 	sort.Sort(fis)
 
-	log.Tracef("read tracks from '%s'", dir)
+	log.Tracef("read tracks from '%v'", dirs)
 	return &fis
 }
 
@@ -151,7 +155,7 @@ func diff(fiCnt fileInfos, fiDir fileInfos) (fiDel, fiAdd fileInfos) {
 //      and (b) determines and returns the differences (i.e. which files must
 // 	            be deleted from and added to the content hierarchies to make it
 //              consistent with the music dir)
-func fullScan(musicDir string, filesByPath func(string) *fileInfos) (*fileInfos, *fileInfos) {
+func fullScan(musicDirs []string, filesByPaths func([]string) *fileInfos) (*fileInfos, *fileInfos) {
 	log.Trace("scanning ...")
 
 	// get changes / differences between music directory and muserv content
@@ -160,13 +164,13 @@ func fullScan(musicDir string, filesByPath func(string) *fileInfos) (*fileInfos,
 
 	// retrieve files from content
 	go func(ret chan<- *fileInfos) {
-		ret <- filesByPath(musicDir)
+		ret <- filesByPaths(musicDirs)
 	}(cntData)
 
 	// retrieve files from music dir
-	go func(musicDir string, ret chan<- *fileInfos) {
-		ret <- filesFromDir(musicDir)
-	}(musicDir, dirData)
+	go func(musicDirs []string, ret chan<- *fileInfos) {
+		ret <- filesFromDirs(musicDirs)
+	}(musicDirs, dirData)
 
 	fiCnt := <-cntData
 	fiDir := <-dirData
