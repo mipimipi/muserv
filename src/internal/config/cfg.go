@@ -313,6 +313,11 @@ func (me *cnt) MusicDir(path string) string {
 // validate checks if the content part of the configuration is complete and
 // correct. If it's not, an error is returned
 func (me *cnt) validate() (err error) {
+	if len(me.MusicDirs) == 0 {
+		err = fmt.Errorf("at least one music directory must be configured")
+		return
+
+	}
 	for _, dir := range me.MusicDirs {
 		if err = validateDir(dir, "music_dir"); err != nil {
 			return
@@ -448,7 +453,7 @@ func validateSort(s string) (err error) {
 // directory in the configuration
 func validateDir(dir, name string) (err error) {
 	if dir == "" {
-		err = fmt.Errorf("no %s maintained", name)
+		err = fmt.Errorf("empty %s is not acceptable", name)
 		return
 	}
 	if !path.IsAbs(dir) {
