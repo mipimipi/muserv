@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 	l "github.com/sirupsen/logrus"
@@ -382,28 +381,20 @@ func (me *Server) setHTTPHandler() {
 				return
 			}
 
-			if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
-				// if path is an external URI, the file is under that path, ...
-				http.ServeFile(w, r, path)
-			} else {
-				// ... otherwise: serve the corresponding file from the music
-				// directory
-
-				// determine path of music track
-				id, err := strconv.ParseUint(path[len(content.MusicFolder):], 10, 64)
-				if err != nil {
-					err = errors.Wrapf(err, "requested file '%s' not found in any of the music directories", path)
-					log.Error(err)
-					return
-				}
-				trackpath, err := me.cnt.Trackpath(id)
-				if err != nil {
-					err = errors.Wrapf(err, "track with path '%s' could not be found", path)
-					log.Error(err)
-				}
-
-				http.ServeFile(w, r, trackpath)
+			// determine path of music track
+			id, err := strconv.ParseUint(path[len(content.MusicFolder):], 10, 64)
+			if err != nil {
+				log.Error(errors.Wrapf(err, "requested track '%s' not found", path))
+				return
 			}
+			trackpath, err := me.cnt.Trackpath(id)
+			if err != nil {
+				log.Error(errors.Wrapf(err, "track with path '%s' not found", path))
+				return
+			}
+
+			// serve music track file
+			http.ServeFile(w, r, trackpath)
 		},
 	)
 

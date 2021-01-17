@@ -334,13 +334,12 @@ func newTrackMarshalFunc(itm item, extMusicPath, extPicturePath string) objMarsh
 		if t.picID.valid {
 			fmt.Fprintf(buf, "<upnp:albumArtURI>%s</upnp:albumArtURI>", extPicturePath+fmt.Sprint(t.picID.id)+".jpg")
 		}
-		if t.isExternal() {
-			fmt.Fprintf(buf, "<res protocolInfo=\"http-get:*:%s:*\">", html.EscapeString(t.mimeType))
-			fmt.Fprint(buf, html.EscapeString(t.path))
-		} else {
-			fmt.Fprintf(buf, "<res protocolInfo=\"http-get:*:%s:*\" size=\"%d\">", html.EscapeString(t.mimeType), t.size)
-			fmt.Fprint(buf, html.EscapeString(extMusicPath+fmt.Sprintf("%d", t.id())))
+		sizeAttr := ""
+		if !t.isExternal() {
+			sizeAttr = fmt.Sprintf("size=\"%d\"", t.size)
 		}
+		fmt.Fprintf(buf, "<res protocolInfo=\"http-get:*:%s:*\" %s>", html.EscapeString(t.mimeType), sizeAttr)
+		fmt.Fprint(buf, html.EscapeString(extMusicPath+fmt.Sprintf("%d", t.id())))
 		fmt.Fprint(buf, "</res>")
 
 		return buf.Bytes()

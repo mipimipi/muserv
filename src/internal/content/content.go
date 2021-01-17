@@ -227,16 +227,12 @@ func (me *Content) Run(ctx context.Context, wg *sync.WaitGroup) {
 
 // Trackpath return the path of the music track with the object id id. An error
 // is returned if the track cannot be found
-func (me *Content) Trackpath(id uint64) (path string, err error) {
+func (me *Content) Trackpath(id uint64) (string, error) {
 	obj, exists := me.objects[ObjID(id)]
 	if !exists {
-		err = fmt.Errorf("an object with id %d could not be found", id)
-		return
+		return "", fmt.Errorf("an object with id %d could not be found", id)
 	}
-
-	path = obj.(*track).path
-
-	return
+	return obj.(*track).path, nil
 }
 
 // UpdateNotification returns a receive-only channel to notify about updates
