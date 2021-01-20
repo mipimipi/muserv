@@ -18,7 +18,7 @@ Files: .gitignore
        doc/*
        cfg/*
        pkg/*
-       ressources/*
+       resources/*
        src/*
        systemd/*
 Copyright: 2020-2021 Michael Picht <mipi@fsfe.org>
