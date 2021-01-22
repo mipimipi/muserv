@@ -200,7 +200,7 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 	fiCnt.removeDuplicates()
 	sort.Sort(fiDir)
 	fiDir.removeDuplicates()
-	tDel, tAdd := diff(fiCnt, fiDir)
+	fiDel, fiAdd := diff(fiCnt, fiDir)
 
 	// create channel to notify server about finalized update
 	updated := make(chan uint32)
@@ -219,7 +219,7 @@ func (me *notifier) processChanges(ctx context.Context, cfg config.Cfg) {
 	// or added objects
 	var count uint32
 	var err error
-	if count, err = me.update(ctx, &tDel, &tAdd); err != nil {
+	if count, err = me.update(ctx, &fiDel, &fiAdd); err != nil {
 		me.errs <- err
 		return
 	}

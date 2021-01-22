@@ -313,29 +313,9 @@ func (me *cnt) MusicDir(path string) string {
 // validate checks if the content part of the configuration is complete and
 // correct. If it's not, an error is returned
 func (me *cnt) validate() (err error) {
-	if len(me.MusicDirs) == 0 {
-		err = fmt.Errorf("at least one music directory must be configured")
+	// check if music directories are compliant
+	if err = me.validateMusicDirs(); err != nil {
 		return
-
-	}
-	for _, dir := range me.MusicDirs {
-		if err = validateDir(dir, "music_dir"); err != nil {
-			return
-		}
-	}
-
-	// music dirs must not be sub dirs of each other
-	for i := 0; i < len(me.MusicDirs); i++ {
-		for j := i + 1; j < len(me.MusicDirs); j++ {
-			if isSub, _ := file.IsSub(me.MusicDirs[i], me.MusicDirs[j]); isSub {
-				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[j], me.MusicDirs[i])
-				return
-			}
-			if isSub, _ := file.IsSub(me.MusicDirs[j], me.MusicDirs[i]); isSub {
-				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[i], me.MusicDirs[i])
-				return
-			}
-		}
 	}
 
 	if me.UpdateMode != "notify" && me.UpdateMode != "scan" {
@@ -370,6 +350,34 @@ func (me *cnt) validate() (err error) {
 		return
 	}
 
+	return
+}
+
+func (me *cnt) validateMusicDirs() (err error) {
+	if len(me.MusicDirs) == 0 {
+		err = fmt.Errorf("at least one music directory must be configured")
+		return
+
+	}
+	for _, dir := range me.MusicDirs {
+		if err = validateDir(dir, "music_dir"); err != nil {
+			return
+		}
+	}
+
+	// music dirs must not be sub dirs of each other
+	for i := 0; i < len(me.MusicDirs); i++ {
+		for j := i + 1; j < len(me.MusicDirs); j++ {
+			if isSub, _ := file.IsSub(me.MusicDirs[i], me.MusicDirs[j]); isSub {
+				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[j], me.MusicDirs[i])
+				return
+			}
+			if isSub, _ := file.IsSub(me.MusicDirs[j], me.MusicDirs[i]); isSub {
+				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[i], me.MusicDirs[i])
+				return
+			}
+		}
+	}
 	return
 }
 

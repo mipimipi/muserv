@@ -2,6 +2,7 @@ package content
 
 import (
 	"fmt"
+	"syscall"
 
 	"mime"
 	"os"
@@ -71,7 +72,9 @@ func newBaseInfo(path string, lastChange int64) (bi baseInfo) {
 		if lastChange != 0 {
 			return lastChange
 		}
-		lastChange = bi.info().ModTime().Unix()
+		// since meta data / tag changes only affect ctime (and not mtime),
+		// bi.info().ModTime() cannot be used
+		lastChange = bi.info().Sys().(*syscall.Stat_t).Ctim.Sec
 		return lastChange
 	}
 

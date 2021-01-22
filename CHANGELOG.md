@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.3.2](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.2) (2021-01-22)
+
+* Changed
+
+  Used ctime instead of mtime for lastchanged of music files
+
 ## [v0.3.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.0) (2021-01-16)
 
 * Added
