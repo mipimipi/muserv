@@ -343,19 +343,19 @@ func createUPnPServer(ctx context.Context) (srv *yuppie.Server, err error) {
 // setHTTPHandler set the handler for HTTP request for presentation URL, music
 // and picture folder URLs
 func (me *Server) setHTTPHandler() {
-	stateVar := func(svName string) string {
-		sv, exists := me.StateVariable(svcIDContDir, svName)
-		if !exists {
-			err := fmt.Errorf("state variable %s not found: cannot display", svName)
-			log.Fatal(err)
-			return ""
-		}
-		return fmt.Sprintf("    %s: %s\n", svName, sv.String())
-	}
-
 	// handler for presentation URL
 	me.PresentationHandleFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			stateVar := func(svName string) string {
+				sv, exists := me.StateVariable(svcIDContDir, svName)
+				if !exists {
+					err := fmt.Errorf("state variable %s not found: cannot display", svName)
+					log.Fatal(err)
+					return ""
+				}
+				return fmt.Sprintf("    %s: %s\n", svName, sv.String())
+			}
+
 			fmt.Fprintf(w, "%s [%s]\n\n", me.cfg.UPnP.ServerName, me.Device.UDN[5:])
 			fmt.Fprintf(w, "%s\n\n", me.ServerString())
 

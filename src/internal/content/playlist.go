@@ -91,6 +91,7 @@ func newPlaylist(cnt *Content, wg *sync.WaitGroup, count *uint32, pli playlistIn
 	return
 }
 
+// trackFromPlaylistItem create a track object from a playlist item
 func trackFromPlaylistItem(cnt *Content, wg *sync.WaitGroup, count *uint32, path, title string) (t *track, err error) {
 	var exists bool
 
