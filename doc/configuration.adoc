@@ -1,0 +1,139 @@
+= Configuration settings
+
+muserv provides default configuration settings. The only additional configuration that must be made are the music directories.
+
+The completeness and consistency of the configuration can be checked via the command
+
+    muserv test
+
+Below, all configuration parameters are described.
+
+== Content-related Parameters (`cnt`)
+
+[cols="1,1,3"] 
+|===
+|Parameter |Default Value| Description
+
+a|`music_dirs`
+a| None. *Must be configured*.
+a|List of music directories as absolute paths. The muserv system user must have read access. There is no default
+
+a|`separator`
+a|`;`
+a|Some tags can have multiple value. `separator` contains the string that is used as separator for these values. Often `\\` or `;` is used.
+
+a|`update_mode`
+a|`notify`
+a|To keep the muserv content up to date if anything in the music directory is changed, muserv provides an update mechanism that runs regularly. `update_mode` specifies which mode is used for that. Two different modes are possible:
+
+- `notify` uses the https://en.wikipedia.org/wiki/Inotify[inotify system] of the Linux kernel
+- `scan` scans the music directory for changes
+
+a|`update_interval`
+a|`60` (one minute)
+a|Time in seconds after which muserv checks for changes in the music direcrtory.
+
+a|`hierarchies`
+a|Latest albums and Genre -> AlbumArtist -> Album -> Track
+a|Here, the content hierarchies that are shown in the UPnP clients are configured. Possible hierarchies are:
+    
+- Genre -> AlbumArtist -> Album -> Track
+- Genre -> Artist -> Track
+- Genre -> Album -> Track
+- Genre -> Track
+- AlbumArtist -> Album -> Track
+- Artist -> Track
+- Track
+
+UPnP clients show the hierarchies in the same sequence as they are configured here. Some hierarachies are preconfigured. Just adjust or remove them or add additional hierarchies. Each hierarchy needs a name. That's the name that is also displayed by the clients. The name of the preconfigured hierarchies can be adjusted. Hierarchies are configured as list of levels (in the first hierarchy "Genre" represents one level, for example). For each level two configurations must be made:
+
+. `type` represents the object or tag (`genre` or `track`, for example). The type of the last level of each hierarchy must by `track`.
+. `sort` are the sorting criteria. They define how the data is sorted inside that level. It consists of a list of attributes preceded by the character `+` or `-` which defines if the sort order is ascending or descending for that attribute. Albums can be sorted by the attributes `title`, `year` and `lastChange`, tracks by the attributes `title`, `year`, `trackNo`, `discNo` and `lastChange`. For all other types (`genre`, `albumartist`, `artist`) no attributes are supported. These are just sorted by the content of the coresponding tag.
+
+Example (latest albums by genre):
+
+  {
+      "name": "Latest Albums by Genre",
+      "levels": [
+          {
+              "type": "genre",
+              "sort": ["+"]
+          },
+          {
+              "type": "album",
+              "sort": ["-lastChange"]
+          },
+          {
+              "type": "track",
+              "sort": ["+discNo","+trackNo"]
+          }
+      ]
+  },
+
+Note that within an album, tracks are sorted first by disc number and then by track number. With this configuration, albums with multiple discs can be handled.          
+
+a|`show_playlists`
+a|`true`
+a|Whether the playlist hierarchy shall be shown or not. If it shall be shown, it's listed directy after the other configured hierarchies but before the folder hierarchy (if that is configured to be shown).
+
+a|`playlist_hierarchy_name`
+a|`Playlists`
+a|The name of the playlist hierarchy that is shown by UPnP clients.
+
+a|`show_folders`
+a|`true`
+a|Whether the folder hierarchy shall be shown or not. If it shall be shown, it's the last hierarchy sequence of hierarchies that UPnP clients display.
+
+a|`folder_hierarchy_name`
+a|`Folders`
+a|The name of the folder hierarchy that is shown by UPnP clients.
+
+|===
+
+== UPnP-related Parameters (`upnp`)
+
+[cols="1,1,3"] 
+|===
+|Parameter |Default Value |Description
+
+a|`interfaces` 
+a|All interfaces are used
+a|Network interfaces to serve.
+
+a|`port`
+a|`8008`
+a|Port for HTTP requests to the server (device and service descriptions, SOAP, media transfer etc.).
+
+a|`server_name`
+a|`Music Server`
+a|Server name that is shown by UPnP clients.
+
+a|`uuid`
+a|A new identifier is created
+a|Unique identifier for the server. It must be of the form `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+
+a|`max_age`
+a|`86400` (once per day)
+a|Time interval in seconds for the renewal of the alive notification.
+  
+a|`device`
+a|For each of the (sub) parameters a default value is set.
+a|This clubs together parameters that are required for the XML description of the root device.
+
+a|`cache_dir`
+a|`/var/cache/muserv`
+a|Cache directory for muserv (absolute path). The muserv system user must have write access to this directory.
+
+a|`status_dir` 
+a|`<CACHE-DIR>/status.json`
+a|File to persist status information (absolute path).
+
+a|`log_dir`
+a|`/var/log/muserv`
+a|Log directory (absolute path). The muserv system user must have write access to it.
+
+a|`log_level`
+a|`fatal`
+a|Here, the verbosity of the muserv log can be configured. Possible values are (ordered by increasing verbosity): `panic`, `fatal`, `error`, `warn`, `info`, `debug`, `trace`.
+
+|===
