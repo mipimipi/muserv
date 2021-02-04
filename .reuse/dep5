@@ -12,7 +12,7 @@ License: CC-BY-NC-SA-4.0
 
 Files: .gitignore
        .gitlab-ci.yml
-       README.md
+       README.adoc
        CHANGELOG.md
        Makefile
        doc/*
