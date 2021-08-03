@@ -586,6 +586,45 @@ func strOfLength(s string, n int) string {
 	return s[:n]
 }
 
+// AlbumsWithInconsistentTrackNumbers determines albums that have either
+// overlapping track numbers or that have gaps in the track numbering
+func (me *Content) AlbumsWithInconsistentTrackNumbers(w io.Writer) {
+	fmt.Fprint(w, "Albums with inconsistent track numbers:\n\n")
+	fmt.Fprintf(w, "%-18s %-30s %-30s\n", "Genre", "AlbumArtist", "Album")
+	fmt.Fprintf(w, "%s\n", space)
+
+	for _, a := range me.albums {
+		if a.numChildren() == 0 {
+			return
+		}
+
+		nums := make(map[int]struct{})
+		t := a.childByIndex(0).(*track)
+		consistent := true
+
+		for i := 0; i < a.numChildren() && consistent; i++ {
+			t := a.childByIndex(i).(*track)
+			if _, exists := nums[t.tags.trackNo]; exists {
+				fmt.Fprintf(w, "%-18s %-30s %-30s\n", strOfLength(t.tags.genres[0], 18), strOfLength(t.tags.albumArtists[0], 30), strOfLength(t.tags.album, 30))
+				consistent = false
+			} else {
+				nums[t.tags.trackNo] = struct{}{}
+			}
+		}
+
+		if !consistent {
+			continue
+		}
+
+		for i := 0; i < len(nums) && consistent; i++ {
+			if _, exists := nums[i+1]; !exists {
+				fmt.Fprintf(w, "%-18s %-30s %-30s\n", strOfLength(t.tags.genres[0], 18), strOfLength(t.tags.albumArtists[0], 30), strOfLength(t.tags.album, 30))
+				consistent = false
+			}
+		}
+	}
+}
+
 // AlbumsWithMultipleCovers determines albums that contain tracks that have not the
 // same cover picture
 func (me *Content) AlbumsWithMultipleCovers(w io.Writer) {

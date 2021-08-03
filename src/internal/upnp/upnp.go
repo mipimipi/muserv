@@ -42,10 +42,11 @@ const contentFolder = "/content/"
 
 // content commands
 const (
-	albumsWithMultipleCovers = "albums-with-multiple-covers"
-	inconsistentAlbums       = "inconsistent-albums"
-	tracksWithoutAlbum       = "tracks-without-album"
-	tracksWithoutCover       = "tracks-without-cover"
+	albumsWithInconsistentTrackNumbers = "albums-with-inconsistent-track-numbers"
+	albumsWithMultipleCovers           = "albums-with-multiple-covers"
+	inconsistentAlbums                 = "inconsistent-albums"
+	tracksWithoutAlbum                 = "tracks-without-album"
+	tracksWithoutCover                 = "tracks-without-cover"
 )
 
 var log *l.Entry = l.WithFields(l.Fields{"srv": "upnp"})
@@ -453,6 +454,8 @@ func (me *Server) setHTTPHandler() {
 			}
 
 			switch path[len(contentFolder):] {
+			case albumsWithInconsistentTrackNumbers:
+				me.cnt.AlbumsWithInconsistentTrackNumbers(w)
 			case albumsWithMultipleCovers:
 				me.cnt.AlbumsWithMultipleCovers(w)
 			case inconsistentAlbums:
