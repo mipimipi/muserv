@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"path"
 	"runtime"
 	"sync"
 
@@ -586,8 +587,40 @@ func strOfLength(s string, n int) string {
 	return s[:n]
 }
 
+// AlbumsSpreadAcrossMultipleDirs determines albums whose tracks are spread
+// across more than one directory. The result is printed to w
+func (me *Content) AlbumsSpreadAcrossMultipleDirs(w io.Writer) {
+	fmt.Fprint(w, "Albums spread across multiple directories:\n\n")
+	fmt.Fprintf(w, "%-18s %-30s %-30s\n", "Genre", "AlbumArtist", "Album")
+	fmt.Fprintf(w, "%s\n", space)
+
+	for _, a := range me.albums {
+		var t0 *track
+		dirs := make(map[string]struct{})
+
+		for i := 0; i < a.numChildren(); i++ {
+			t := a.childByIndex(i).(*track)
+			if t0 == nil {
+				t0 = t
+			}
+			dir, _ := path.Split(t.path)
+			if _, exists := dirs[dir]; !exists {
+				dirs[dir] = struct{}{}
+			}
+		}
+
+		if len(dirs) > 1 {
+			fmt.Fprintf(w, "%-18s %-30s %-30s\n", strOfLength(t0.tags.genres[0], 18), strOfLength(t0.tags.albumArtists[0], 30), strOfLength(t0.tags.album, 30))
+			for dir := range dirs {
+				fmt.Fprintf(w, "\t%s\n", dir)
+			}
+		}
+	}
+}
+
 // AlbumsWithInconsistentTrackNumbers determines albums that have either
-// overlapping track numbers or that have gaps in the track numbering
+// overlapping track numbers or that have gaps in the track numbering. The
+// result is printed to w
 func (me *Content) AlbumsWithInconsistentTrackNumbers(w io.Writer) {
 	fmt.Fprint(w, "Albums with inconsistent track numbers:\n\n")
 	fmt.Fprintf(w, "%-18s %-30s %-30s\n", "Genre", "AlbumArtist", "Album")
@@ -626,7 +659,7 @@ func (me *Content) AlbumsWithInconsistentTrackNumbers(w io.Writer) {
 }
 
 // AlbumsWithMultipleCovers determines albums that contain tracks that have not the
-// same cover picture
+// same cover picture. The result is printed to w
 func (me *Content) AlbumsWithMultipleCovers(w io.Writer) {
 	fmt.Fprint(w, "Albums with multiple covers:\n\n")
 	fmt.Fprintf(w, "%-18s %-30s %-30s\n", "Genre", "AlbumArtist", "Album")
@@ -696,7 +729,8 @@ func (me *Content) InconsistentAlbums(w io.Writer) {
 	}
 }
 
-// TracksWithoutAlbum determines tracks that do not have a album tag assigned
+// TracksWithoutAlbum determines tracks that do not have a album tag assigned.
+// The result is printed to w
 func (me *Content) TracksWithoutAlbum(w io.Writer) {
 	fmt.Fprint(w, "Tracks without album:\n")
 	for _, t := range me.tracks {
@@ -706,7 +740,8 @@ func (me *Content) TracksWithoutAlbum(w io.Writer) {
 	}
 }
 
-// TracksWithoutCover determines tracks that do not have a cover picture assigned
+// TracksWithoutCover determines tracks that do not have a cover picture
+// assigned. The result is printed to w
 func (me *Content) TracksWithoutCover(w io.Writer) {
 	fmt.Fprint(w, "Tracks without cover pictures:\n")
 	for _, t := range me.tracks {

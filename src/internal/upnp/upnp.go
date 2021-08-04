@@ -42,6 +42,7 @@ const contentFolder = "/content/"
 
 // content commands
 const (
+	albumsSpreadAcrossMultipleDirs     = "albums-spread-across-multiple-directories"
 	albumsWithInconsistentTrackNumbers = "albums-with-inconsistent-track-numbers"
 	albumsWithMultipleCovers           = "albums-with-multiple-covers"
 	inconsistentAlbums                 = "inconsistent-albums"
@@ -454,6 +455,8 @@ func (me *Server) setHTTPHandler() {
 			}
 
 			switch path[len(contentFolder):] {
+			case albumsSpreadAcrossMultipleDirs:
+				me.cnt.AlbumsSpreadAcrossMultipleDirs(w)
 			case albumsWithInconsistentTrackNumbers:
 				me.cnt.AlbumsWithInconsistentTrackNumbers(w)
 			case albumsWithMultipleCovers:
