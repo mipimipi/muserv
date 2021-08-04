@@ -255,7 +255,7 @@ func (me *Content) WriteStatus(w io.Writer) {
 		// memory consumption
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
-		message.NewPrinter(language.English).Fprintf(w, "    Memory consumption: %d Bytes\n", m.HeapAlloc)
+		_, _ = message.NewPrinter(language.English).Fprintf(w, "    Memory consumption: %d Bytes\n", m.HeapAlloc)
 
 	case statusUpdating:
 		fmt.Fprint(w, "   Updating content ...\n")

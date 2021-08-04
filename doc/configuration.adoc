@@ -20,7 +20,7 @@ a|List of music directories as absolute paths. The muserv system user must have 
 
 a|`separator`
 a|`;`
-a|Some tags can have multiple value. `separator` contains the string that is used as separator for these values. Often `\\` or `;` is used.
+a|Some tags can have multiple values. `separator` contains the string that is used as separator for these values. Often `\\` or `;` is used.
 
 a|`update_mode`
 a|`notify`

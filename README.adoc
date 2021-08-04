@@ -5,6 +5,8 @@ image:https://api.reuse.software/badge/gitlab.com/mipimipi/muserv[link="https://
 
 Simple command line https://en.wikipedia.org/wiki/Universal_Plug_and_Play[UPnP] music server for Linux that allows a flexible structuring of your music in content hierarchies. Supported music file types include https://en.wikipedia.org/wiki/MP3[MP3], https://en.wikipedia.org/wiki/FLAC[FLAC], https://en.wikipedia.org/wiki/Vorbis[Ogg Vorbis], https://en.wikipedia.org/wiki/Opus_(audio_format)[Opus], https://en.wikipedia.org/wiki/Advanced_Audio_Coding[AAC], https://en.wikipedia.org/wiki/Apple_Lossless[Alac] and https://en.wikipedia.org/wiki/MPEG-4_Part_14[MP4/M4a]. In addition muserve can read https://en.wikipedia.org/wiki/M3U[M3U playlists] in simple and extended format.
 
+muserv contains link:doc/checks.adoc[checks] that can be executed to detect potential inconsistencies in the music database.
+
 == Installation
 
 === Installation with Package Managers

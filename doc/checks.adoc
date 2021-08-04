@@ -1,0 +1,43 @@
+= Content checks
+
+muserv provides a set of checks that can be executed to detect inconsistencies in the music database. With these checks we do not want to impose any guideline or best practice wrt. organization or tagging of music files. They are meant as a (hopefully helpful) tool to detect potential inconsistencies.
+
+If the muserv service is running, these check can be executed in the browser via the URL
+
+    <IP-address-of-your-server:8008>/content/<name-of-check>
+
+The check result is displayed in the browser.     
+
+== Available checks
+
+The table lists the available checks.
+
+[cols="1,1"] 
+|===
+|Name of check | Description
+
+a|`albums-spread-across-multiple-directories`
+a|Lists all albums whose track files are spread across more than one directory. 
+
+a|`albums-with-inconsistent-track-numbers`
+a|This check verifies that the track numbering for each album ...
+
+- starts with 1
+- there are no overlapping track numbers
+- there are no gaps.
+
+Thus, an album with 8 tracks that are numbered 1, 1, 2, 3, 4, 5, 6, 7 or 2, 3, 4, 5, 6, 7, 8, 9 would occur in the results list.
+
+a|`albums-with-multiple-covers`
+a|Lists all albums where the tracks don't have the same cover picture assigned. 
+
+a|`inconsistent-albums`
+a|Lists all albums with the same title from the same album artists that don't have the same year and compilation flag assigned. 
+
+a|`tracks-without-album`
+a|Lists all tracks that have no or an empty album tag. 
+
+a|`tracks-without-cover`
+a|Lists all tracks that don't have a cover picture assigned. 
+
+|===
