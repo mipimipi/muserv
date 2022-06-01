@@ -25,11 +25,18 @@ lint:
 	reuse lint
 	golangci-lint run
 	
-# move all executables to /usr/bin 
+# move relevant files to their destination
 install:
 	@for CMD in `ls ./src/cmd`; do \
 		install -Dm755 $$CMD $(DESTDIR)/usr/bin/$$CMD; \
 	done
+	@install -Dm0644 systemd/muserv.service "$(DESTDIR)"/etc/systemd/system/muserv.service
+	@install -Dm0644 cfg/sysusers.conf "$(DESTDIR)"/usr/lib/sysusers.d/muserv.conf
+	@install -Dm0644 cfg/config-default.json "$(DESTDIR)"/etc/muserv/config-default.json
+	@install -Dm0644 cfg/ContentDirectory.xml "$(DESTDIR)"/etc/muserv/ContentDirectory.xml
+	@install -Dm0644 cfg/ConnectionManager.xml "$(DESTDIR)"/etc/muserv/ConnectionManager.xml
+	@install -Dm0644 resources/logo_dark_300px.png "$(DESTDIR)"/etc/muserv/icons/icon_dark.png
+	@install -Dm0644 resources/logo_light_300px.png "$(DESTDIR)"/etc/muserv/icons/icon_light.png
 
 # remove build results
 clean:
