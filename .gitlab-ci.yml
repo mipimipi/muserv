@@ -6,9 +6,7 @@ stages:
 deploy-aur:
     stage: deploy
     rules:
-        - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == "master"'
-          changes:
-            - pkg/AUR/PKGBUILD   
+        - if: $CI_COMMIT_TAG
 
     before_script:
         # update arch linux and install additional packages  
@@ -18,7 +16,7 @@ deploy-aur:
         - echo "$AUR_SSH_KEY" | tr -d '\r' | ssh-add -
         - mkdir -p ~/.ssh
         - chmod 700 ~/.ssh
-        - echo "$AUR_HOST_INFO" > ~/.ssh/known_hosts
+        - ssh-keyscan ${AUR_URL} > ~/.ssh/known_hosts
         - chmod 644 ~/.ssh/known_hosts
         # set git config
         - git config --global user.email "$GITLAB_USER_EMAIL"

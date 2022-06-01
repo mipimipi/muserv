@@ -1,19 +1,19 @@
 # Changelog
 
-## [Release 0.5.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.5.0) (2022-06-01)
+## [Release 0.5.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.5.0) (2022-06-01)
 
 ### Changed
 
-* Updated dependencies
-
 * Corrected build error for armv7h
+* Corrected CI/CD pipeline
+* Updated dependencies
+* Adjusted Makefile and Arch Linux PKGBUILD file
 
 ## [Release 0.4.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.4.0) (2021-08-04)
 
 ### Added
 
 * Documentation of consistency checks
-
 * New consistency checks `albums-spread-across-multiple-directories` and `albums-with-inconsistent-track-numbers` 
 
 ## [Release 0.3.2](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.2) (2021-01-22)
@@ -27,7 +27,6 @@
 ### Added
 
 * Read support of M3U playlists.
-
 * Support of multiple music directories.
 
 
@@ -48,7 +47,6 @@
 ### Added
 
 * Logos and icons
-
 
 ## [Release 0.1.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.1.0) (2020-12-17)
 
