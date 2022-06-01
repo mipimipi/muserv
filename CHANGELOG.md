@@ -1,47 +1,55 @@
 # Changelog
 
-## [v0.4.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.4.0) (2021-08-04)
+## [Release 0.5.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.5.0) (2022-06-01)
 
-* Added
+### Changed
 
-  Documentation of consistency checks
+* Updated dependencies
 
-  New consistency checks `albums-spread-across-multiple-directories` and `albums-with-inconsistent-track-numbers` 
+* Corrected build error for armv7h
 
-## [v0.3.2](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.2) (2021-01-22)
+## [Release 0.4.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.4.0) (2021-08-04)
 
-* Changed
+### Added
 
-  Used ctime instead of mtime for lastchanged of music files
+* Documentation of consistency checks
 
-## [v0.3.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.0) (2021-01-16)
+* New consistency checks `albums-spread-across-multiple-directories` and `albums-with-inconsistent-track-numbers` 
 
-* Added
+## [Release 0.3.2](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.2) (2021-01-22)
 
-  Read support of M3U playlists.
+### Changed
 
-  Support of multiple music directories.
+*  Used ctime instead of mtime for lastchanged of music files
 
+## [Release 0.3.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.3.0) (2021-01-16)
 
-## [v0.2.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.2.1) (2021-01-01)
+### Added
 
-* Added
+* Read support of M3U playlists.
 
-  Support of Ogg Opus.
-
-## [v0.2.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.2.0) (2020-12-29)
-
-* Added
-
-  Support of flexible definition of content hierarchies.
-
-## [v0.1.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.1.1) (2020-12-19)
-
-* Added
-
-  Logos and icons
+* Support of multiple music directories.
 
 
-## [v0.1.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.1.0) (2020-12-17)
+## [Release 0.2.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.2.1) (2021-01-01)
+
+### Added
+
+* Support of Ogg Opus.
+
+## [Release 0.2.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.2.0) (2020-12-29)
+
+### Added
+
+* Support of flexible definition of content hierarchies.
+
+## [Release 0.1.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.1.1) (2020-12-19)
+
+### Added
+
+* Logos and icons
+
+
+## [Release 0.1.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.1.0) (2020-12-17)
 
 * Basic functionality to serve music files in different hierarchies
