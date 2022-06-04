@@ -1,6 +1,12 @@
 # Changelog
 
-## [Release 0.5.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.5.0) (2022-06-01)
+## [Release 0.5.2](https://gitlab.com/mipimipi/muserv/-/tags/v0.5.2) (2022-06-04)
+
+### Changed
+
+* Corrected another build error for armv7h
+
+## [Release 0.5.1](https://gitlab.com/mipimipi/muserv/-/tags/v0.5.1) (2022-06-01)
 
 ### Changed
 
