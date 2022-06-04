@@ -73,8 +73,9 @@ func newBaseInfo(path string, lastChange int64) (bi baseInfo) {
 			return lastChange
 		}
 		// since meta data / tag changes only affect ctime (and not mtime),
-		// bi.info().ModTime() cannot be used
-		lastChange = bi.info().Sys().(*syscall.Stat_t).Ctim.Sec
+		// bi.info().ModTime() cannot be used. The explicit cast to int64 is
+		// required since for some architectures Ctim.Sec is int32.
+		lastChange = int64(bi.info().Sys().(*syscall.Stat_t).Ctim.Sec)
 		return lastChange
 	}
 
