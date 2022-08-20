@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"mime"
+	"os"
 	"os/user"
 	"path"
 	p "path"
@@ -241,7 +241,7 @@ func SupportedMimeTypes() (s string) {
 
 // Load reads the configuration file and returns the muserv config as structure
 func Load() (cfg Cfg, err error) {
-	cfgFile, err := ioutil.ReadFile(cfgFilepath)
+	cfgFile, err := os.ReadFile(cfgFilepath)
 	if err != nil {
 		return Cfg{}, errors.Wrapf(err, "config file '%s' couldn't be read", cfgFilepath)
 	}

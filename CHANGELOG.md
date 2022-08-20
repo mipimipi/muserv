@@ -1,5 +1,11 @@
 # Changelog
 
+## [Release 0.6.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.6.0) (2022-08-20)
+
+### Changed
+
+* Update to go 1.19: Replaced deprecated functions of io/ioutil
+
 ## [Release 0.5.2](https://gitlab.com/mipimipi/muserv/-/tags/v0.5.2) (2022-06-04)
 
 ### Changed
