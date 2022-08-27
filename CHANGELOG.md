@@ -1,5 +1,11 @@
 # Changelog
 
+## [Release 0.6.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.6.1) (2022-08-27)
+
+### Changed
+
+* Replaced package gitlab.com/mipimipi/go-utils by packages gitlab.com/go-utilities/*
+
 ## [Release 0.6.0](https://gitlab.com/mipimipi/muserv/-/tags/v0.6.0) (2022-08-20)
 
 ### Changed
