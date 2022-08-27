@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	f "gitlab.com/mipimipi/go-utils/file"
+	f "gitlab.com/go-utilities/file"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -152,9 +152,10 @@ func diff(fiCnt fileInfos, fiDir fileInfos) (fiDel, fiAdd fileInfos) {
 }
 
 // fullScan (a) reads all files from the muserv content and from the music dir
-//      and (b) determines and returns the differences (i.e. which files must
-// 	            be deleted from and added to the content hierarchies to make it
-//              consistent with the music dir)
+//
+//	     and (b) determines and returns the differences (i.e. which files must
+//		            be deleted from and added to the content hierarchies to make it
+//	             consistent with the music dir)
 func fullScan(musicDirs []string, filesByPaths func([]string) *fileInfos) (*fileInfos, *fileInfos) {
 	log.Trace("scanning ...")
 

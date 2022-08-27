@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rjeczalik/notify"
-	f "gitlab.com/mipimipi/go-utils/file"
+	f "gitlab.com/go-utilities/file"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 

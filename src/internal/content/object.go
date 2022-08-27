@@ -10,7 +10,7 @@ import (
 	"github.com/dhowden/tag"
 	"github.com/disintegration/imaging"
 	"github.com/pkg/errors"
-	utils "gitlab.com/mipimipi/go-utils"
+	"gitlab.com/go-utilities/hash"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -79,10 +79,11 @@ func (me objects) add(obj object) {
 
 // refs implements the references to child objects of a container object. Child
 // objects can be accessed via different ways:
-// - by object ID
-// - by object key (a key is a uint64 hash that typically encodes some object
-//	 attributes)
-// - by an index in sort order
+//   - by object ID
+//   - by object key (a key is a uint64 hash that typically encodes some object
+//     attributes)
+//   - by an index in sort order
+//
 // After a child object was added or removed, the inOrder array is generated
 // from byID upon the access to it
 type refs struct {
@@ -199,7 +200,7 @@ func newCtr(cnt *Content, id ObjID, name string) *ctr {
 		&obj{
 			cnt:         cnt,
 			i:           id,
-			k:           utils.HashUint64(name),
+			k:           hash.HashUint64(name),
 			n:           name,
 			sf:          []string{strings.ToLower(name)},
 			marshalFunc: func(mode string, first int, last int) []byte { return []byte{} },
@@ -274,7 +275,7 @@ func newItm(cnt *Content, id ObjID, name string) *itm {
 		&obj{
 			cnt:         cnt,
 			i:           id,
-			k:           utils.HashUint64(name),
+			k:           hash.HashUint64(name),
 			n:           name,
 			sf:          []string{strings.ToLower(name)},
 			marshalFunc: func(mode string, first int, last int) []byte { return []byte{} },
@@ -343,7 +344,7 @@ func (me *pictures) add(wg *sync.WaitGroup, pic *tag.Picture, picID *nonePicID) 
 	}
 	picture := buf.Bytes()
 
-	*picID = nonePicID{utils.HashUint64("%x", picture), true}
+	*picID = nonePicID{hash.HashUint64("%x", picture), true}
 
 	me.mu.Lock()
 	_, exists := me.data[picID.id]

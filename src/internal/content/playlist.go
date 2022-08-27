@@ -10,7 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/ushis/m3u"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
+	"gitlab.com/go-utilities/filepath"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -23,7 +24,7 @@ type playlist struct {
 // newPlaylist creates a new playlist container
 func newPlaylist(cnt *Content, wg *sync.WaitGroup, count *uint32, pli playlistInfo) (pl *playlist, err error) {
 	pl = &playlist{
-		newCtr(cnt, cnt.newID(), p.Base(file.PathTrunk(pli.path()))),
+		newCtr(cnt, cnt.newID(), p.Base(filepath.PathTrunk(pli.path()))),
 		pli.lastChange(),
 	}
 	pl.marshalFunc = newPlaylistMarshalFunc(pl)
@@ -106,7 +107,7 @@ func trackFromPlaylistItem(cnt *Content, wg *sync.WaitGroup, count *uint32, path
 				return
 			}
 			if len(title) == 0 {
-				title = p.Base(file.PathTrunk(path))
+				title = p.Base(filepath.PathTrunk(path))
 			}
 			t.n = title
 			t.sf = []string{title}

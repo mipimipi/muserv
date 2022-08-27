@@ -12,7 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	l "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils"
+	"gitlab.com/go-utilities/strings"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 	"gitlab.com/mipimipi/muserv/src/internal/content"
 	"gitlab.com/mipimipi/yuppie"
@@ -237,7 +237,7 @@ func (me *Server) SetServiceResetToken() {
 		return
 	}
 	sv.Lock()
-	if err := sv.Set(utils.RandomString(32)); err != nil {
+	if err := sv.Set(strings.RandomString(32)); err != nil {
 		err := errors.Wrapf(err, "cannot set state variable '%s'", svServiceResetToken)
 		log.Fatal(err)
 		me.Errs <- err

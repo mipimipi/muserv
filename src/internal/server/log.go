@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	l "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 

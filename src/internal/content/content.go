@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 	l "github.com/sirupsen/logrus"
-	utils "gitlab.com/mipimipi/go-utils"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/filepath"
+	"gitlab.com/go-utilities/net"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -78,7 +78,7 @@ type Content struct {
 func New(cfg *config.Cfg) (cnt *Content, err error) {
 	log.Trace("creating content object ...")
 
-	addr, err := utils.IPaddr()
+	addr, err := net.IPaddr()
 	if err != nil {
 		err = errors.Wrap(err, "cannot create content since IP address cannot be determined")
 		log.Fatal(err)
@@ -277,7 +277,7 @@ func (me *Content) filesByPaths(paths []string) *fileInfos {
 	for p, fi := range me.tracks {
 	L0:
 		for _, path := range paths {
-			if isSub, _ := file.IsSub(p, path); isSub {
+			if isSub, _ := filepath.IsSub(p, path); isSub {
 				fis = append(fis, newTrackInfo(p, fi.lastChange))
 				break L0
 			}
@@ -286,7 +286,7 @@ func (me *Content) filesByPaths(paths []string) *fileInfos {
 	for p, fi := range me.playlists {
 	L1:
 		for _, path := range paths {
-			if isSub, _ := file.IsSub(path, p); isSub {
+			if isSub, _ := filepath.IsSub(path, p); isSub {
 				fis = append(fis, newPlaylistInfo(p, fi.lastChange))
 				break L1
 			}

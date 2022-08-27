@@ -12,8 +12,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"gitlab.com/mipimipi/go-utils"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
+	"gitlab.com/go-utilities/filepath"
+	"gitlab.com/go-utilities/reflect"
 )
 
 // UserName is the name of the muserv system user
@@ -297,7 +298,7 @@ func (me *cnt) MusicDir(path string) string {
 
 	for _, dir := range me.MusicDirs {
 		if p.IsAbs(path) {
-			if isSub, _ := file.IsSub(dir, path); isSub {
+			if isSub, _ := filepath.IsSub(dir, path); isSub {
 				return dir
 			}
 			continue
@@ -368,11 +369,11 @@ func (me *cnt) validateMusicDirs() (err error) {
 	// music dirs must not be sub dirs of each other
 	for i := 0; i < len(me.MusicDirs); i++ {
 		for j := i + 1; j < len(me.MusicDirs); j++ {
-			if isSub, _ := file.IsSub(me.MusicDirs[i], me.MusicDirs[j]); isSub {
+			if isSub, _ := filepath.IsSub(me.MusicDirs[i], me.MusicDirs[j]); isSub {
 				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[j], me.MusicDirs[i])
 				return
 			}
-			if isSub, _ := file.IsSub(me.MusicDirs[j], me.MusicDirs[i]); isSub {
+			if isSub, _ := filepath.IsSub(me.MusicDirs[j], me.MusicDirs[i]); isSub {
 				err = fmt.Errorf("music dir '%s' if sub dir of '%s'", me.MusicDirs[i], me.MusicDirs[i])
 				return
 			}
@@ -507,7 +508,7 @@ func (me *Hierarchy) validate() (err error) {
 			return
 		}
 		if i < len(me.Levels)-1 {
-			if !utils.Contains(allowedSuccs, me.Levels[i+1].Type) {
+			if !reflect.Contains(allowedSuccs, me.Levels[i+1].Type) {
 				err = fmt.Errorf("hierarchy '%s' must not contain '%s' as successor of '%s'", me.Name, me.Levels[i+1].Type, level.Type)
 				return
 			}
@@ -518,7 +519,7 @@ func (me *Hierarchy) validate() (err error) {
 				return
 			}
 			_, sf := splitSort(s)
-			if !utils.Contains(allowedSortFields[level.Type], sf) {
+			if !reflect.Contains(allowedSortFields[level.Type], sf) {
 				err = fmt.Errorf("hierarchy level '%s' cannot be sorted by '%s'", level.Type, sf)
 			}
 		}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/dhowden/tag"
 	"github.com/pkg/errors"
-	utils "gitlab.com/mipimipi/go-utils"
+	"gitlab.com/go-utilities/hash"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -115,7 +115,7 @@ func newExtTrack(cnt *Content, count *uint32, url, title string) (t *track, err 
 // albumKey calculates the key of an album as FNV hash from album artists, album
 // title, year and whether it's a compilation or not
 func (me *track) albumKey() uint64 {
-	return utils.HashUint64("%v%s%d%t", me.tags.albumArtists, me.tags.album, me.tags.year, me.tags.compilation)
+	return hash.HashUint64("%v%s%d%t", me.tags.albumArtists, me.tags.album, me.tags.year, me.tags.compilation)
 }
 
 // delTrackRef removes a track references fro the reference map

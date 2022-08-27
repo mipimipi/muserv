@@ -4,8 +4,8 @@ import (
 	p "path"
 
 	"github.com/pkg/errors"
-	utils "gitlab.com/mipimipi/go-utils"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/filepath"
+	"gitlab.com/go-utilities/hash"
 	"gitlab.com/mipimipi/muserv/src/internal/config"
 )
 
@@ -33,7 +33,7 @@ func (me *Content) addTrackToHierarchyLevel(count *uint32, hier *config.Hierarch
 
 	for i := 0; i < len(tags); i++ {
 		var ctrNext container
-		obj, exists := ctr.childByKey(utils.HashUint64("%s", tags[i]))
+		obj, exists := ctr.childByKey(hash.HashUint64("%s", tags[i]))
 		if exists {
 			ctrNext = obj.(container)
 		} else {
@@ -129,7 +129,7 @@ func (me *Content) addTrackToFolderHierarchy(count *uint32, ctr container, t *tr
 	// nodes is needed. Each node represents one directory
 	if len(me.cfg.Cnt.MusicDirs) > 1 {
 		var ctrDir container
-		obj, exists := ctr.childByKey(utils.HashUint64("%s", musicDir))
+		obj, exists := ctr.childByKey(hash.HashUint64("%s", musicDir))
 		if exists {
 			ctrDir = obj.(container)
 		} else {
@@ -145,7 +145,7 @@ func (me *Content) addTrackToFolderHierarchy(count *uint32, ctr container, t *tr
 	}
 
 	// create nodes for all folders and the music track itself
-	dirs := file.SplitPath(t.path[len(musicDir):])
+	dirs := filepath.SplitPath(t.path[len(musicDir):])
 	for i, path := 0, musicDir; i < len(dirs); i++ {
 		if i == len(dirs)-1 {
 			ctr.addChild(tRef)
